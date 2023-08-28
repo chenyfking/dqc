@@ -1,0 +1,103 @@
+// 互金机构-逾期审核
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreMultiDict
+import com.beagledata.gaea.examples.hujin.Mutualgoldtrust
+import com.beagledata.gaea.examples.hujin.Reason
+
+rule "ruletree_yushai5_yushai1"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes >= 3 // 互金机构.借款人贷款逾期30天次数 大于或等于 3
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "拒绝"; // 赋值:互金内部信审结果.互金一审结果 = 拒绝
+        $Reason.describe = "本人近期存在逾期行为，且逾期次数过多"; // 赋值:不通过原因.描述 = 本人近期存在逾期行为，且逾期次数过多
+end
+
+rule "ruletree_yushai5_yushai2"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes < 3 // 互金机构.借款人贷款逾期30天次数 小于 3
+            && hitOverdue90ListTimes >= 1 // 互金机构.借款人贷款逾期90天次数 大于或等于 1
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "拒绝"; // 赋值:互金内部信审结果.互金一审结果 = 拒绝
+        $Reason.describe = "该借款人存在逾期90天以上的逾期行为，且逾期次数过多"; // 赋值:不通过原因.描述 = 该借款人存在逾期90天以上的逾期行为，且逾期次数过多
+end
+
+rule "ruletree_yushai5_yushai3"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes < 3 // 互金机构.借款人贷款逾期30天次数 小于 3
+            && hitOverdue90ListTimes < 1 // 互金机构.借款人贷款逾期90天次数 小于 1
+            && hitOverdue180ListTimes >= 1 // 互金机构.借款人贷款逾期180天次数 大于或等于 1
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "拒绝"; // 赋值:互金内部信审结果.互金一审结果 = 拒绝
+        $Reason.describe = "该借款人存在逾期180天以上的逾期行为，且逾期次数过多"; // 赋值:不通过原因.描述 = 该借款人存在逾期180天以上的逾期行为，且逾期次数过多
+end
+
+rule "ruletree_yushai5_yushai4"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes < 3 // 互金机构.借款人贷款逾期30天次数 小于 3
+            && hitOverdue90ListTimes < 1 // 互金机构.借款人贷款逾期90天次数 小于 1
+            && hitOverdue180ListTimes < 1 // 互金机构.借款人贷款逾期180天次数 小于 1
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "人工审核"; // 赋值:互金内部信审结果.互金一审结果 = 人工审核
+        $Reason.describe = "建议查看有无其他失信行为"; // 赋值:不通过原因.描述 = 建议查看有无其他失信行为
+end
+
+rule "ruletree_yushai5_yushai5"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        PreMultiDict(
+            hitOverdue30ListTimes < 3 // 互金机构.借款人贷款逾期30天次数 小于 3
+            && hitOverdue90ListTimes < 1 // 互金机构.借款人贷款逾期90天次数 小于 1
+            && hitOverdue180ListTimes == "" // 互金机构.借款人贷款逾期180天次数 为空
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "通过"; // 赋值:互金内部信审结果.互金一审结果 = 通过
+end
+
+rule "ruletree_yushai5_yushai6"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes < 3 // 互金机构.借款人贷款逾期30天次数 小于 3
+            && hitOverdue90ListTimes == "" // 互金机构.借款人贷款逾期90天次数 为空
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "人工审核"; // 赋值:互金内部信审结果.互金一审结果 = 人工审核
+        $Reason.describe = "建议查看有无其他失信行为"; // 赋值:不通过原因.描述 = 建议查看有无其他失信行为
+end
+
+rule "ruletree_yushai5_yushai7"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitOverdue30ListTimes == "" // 互金机构.借款人贷款逾期30天次数 为空
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust1 = "人工审核"; // 赋值:互金内部信审结果.互金一审结果 = 人工审核
+        $Reason.describe = "建议查看有无其他失信行为"; // 赋值:不通过原因.描述 = 建议查看有无其他失信行为
+end

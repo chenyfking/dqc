@@ -1,0 +1,310 @@
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.Score1
+import com.beagledata.gaea.examples.hujin.ScoreResult
+
+rule "scorecard_yushai1_scorecard1"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings < 15000) // 年收入 小于 15000
+    then
+        $ScoreResult.score_result += 1;
+end
+
+rule "scorecard_yushai1_scorecard2"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings >= 15000 && annual_earnings <= 25000) // 年收入 大于或等于 15000 并且 小于或等于 25000
+    then
+        $ScoreResult.score_result += 4;
+end
+
+rule "scorecard_yushai1_scorecard3"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings >= 25001 && annual_earnings <= 35000) // 年收入 大于或等于 25001 并且 小于或等于 35000
+    then
+        $ScoreResult.score_result += 9;
+end
+
+rule "scorecard_yushai1_scorecard4"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings >= 35001 && annual_earnings <= 45000) // 年收入 大于或等于 35001 并且 小于或等于 45000
+    then
+        $ScoreResult.score_result += 14;
+end
+
+rule "scorecard_yushai1_scorecard5"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings >= 45001 && annual_earnings <= 60000) // 年收入 大于或等于 45001 并且 小于或等于 60000
+    then
+        $ScoreResult.score_result += 18;
+end
+
+rule "scorecard_yushai1_scorecard6"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(annual_earnings > 60000) // 年收入 大于 60000
+    then
+        $ScoreResult.score_result += 20;
+end
+
+rule "scorecard_yushai1_scorecard7"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age < 20) // 年龄 小于 20
+    then
+        $ScoreResult.score_result += -4;
+end
+
+rule "scorecard_yushai1_scorecard8"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age >= 20 && age <= 21) // 年龄 大于或等于 20 并且 小于或等于 21
+    then
+        $ScoreResult.score_result += 4;
+end
+
+rule "scorecard_yushai1_scorecard9"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age >= 22 && age <= 24) // 年龄 大于或等于 22 并且 小于或等于 24
+    then
+        $ScoreResult.score_result += 7;
+end
+
+rule "scorecard_yushai1_scorecard10"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age >= 25 && age <= 30) // 年龄 大于或等于 25 并且 小于或等于 30
+    then
+        $ScoreResult.score_result += 14;
+end
+
+rule "scorecard_yushai1_scorecard11"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age >= 31 && age <= 40) // 年龄 大于或等于 31 并且 小于或等于 40
+    then
+        $ScoreResult.score_result += 15;
+end
+
+rule "scorecard_yushai1_scorecard12"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age >= 41 && age <= 50) // 年龄 大于或等于 41 并且 小于或等于 50
+    then
+        $ScoreResult.score_result += 17;
+end
+
+rule "scorecard_yushai1_scorecard13"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age > 50 && age < 65) // 年龄 大于 50 并且 小于 65
+    then
+        $ScoreResult.score_result += 10;
+end
+
+rule "scorecard_yushai1_scorecard14"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(age > 65) // 年龄 大于 65
+    then
+        $ScoreResult.score_result += -4;
+end
+
+rule "scorecard_yushai1_scorecard15"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(bank_account_number == 0) // 银行账户个数 等于 0
+    then
+        $ScoreResult.score_result += -5;
+end
+
+rule "scorecard_yushai1_scorecard16"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(bank_account_number == 1) // 银行账户个数 等于 1
+    then
+        $ScoreResult.score_result += 0;
+end
+
+rule "scorecard_yushai1_scorecard17"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(bank_account_number == 2) // 银行账户个数 等于 2
+    then
+        $ScoreResult.score_result += 5;
+end
+
+rule "scorecard_yushai1_scorecard18"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(bank_account_number > 2) // 银行账户个数 大于 2
+    then
+        $ScoreResult.score_result += 8;
+end
+
+rule "scorecard_yushai1_scorecard19"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(length_of_entry < 0.5) // 入职时长（年） 小于 0.5
+    then
+        $ScoreResult.score_result += 0;
+end
+
+rule "scorecard_yushai1_scorecard20"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(length_of_entry >= 0.5 && length_of_entry < 2) // 入职时长（年） 大于或等于 0.5 并且 小于 2
+    then
+        $ScoreResult.score_result += 4;
+end
+
+rule "scorecard_yushai1_scorecard21"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(length_of_entry >= 2 && length_of_entry < 5) // 入职时长（年） 大于或等于 2 并且 小于 5
+    then
+        $ScoreResult.score_result += 9;
+end
+
+rule "scorecard_yushai1_scorecard22"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(length_of_entry >= 5) // 入职时长（年） 大于或等于 5
+    then
+        $ScoreResult.score_result += 15;
+end
+
+rule "scorecard_yushai1_scorecard23"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(break_faith >= 2 && break_faith < 4) // 失信情况（次数） 大于或等于 2 并且 小于 4
+    then
+        $ScoreResult.score_result += -5;
+end
+
+rule "scorecard_yushai1_scorecard24"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(break_faith >= 1 && break_faith < 2) // 失信情况（次数） 大于或等于 1 并且 小于 2
+    then
+        $ScoreResult.score_result += 0;
+end
+
+rule "scorecard_yushai1_scorecard25"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(break_faith == 0) // 失信情况（次数） 等于 0
+    then
+        $ScoreResult.score_result += 15;
+end
+
+rule "scorecard_yushai1_scorecard26"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(break_faith >= 4) // 失信情况（次数） 大于或等于 4
+    then
+        $ScoreResult.score_result += -9;
+end
+
+rule "scorecard_yushai1_scorecard27"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(the_number_of_cards == 0) // 已持有信用卡数量 等于 0
+    then
+        $ScoreResult.score_result += -2;
+end
+
+rule "scorecard_yushai1_scorecard28"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(the_number_of_cards >= 1 && the_number_of_cards <= 4) // 已持有信用卡数量 大于或等于 1 并且 小于或等于 4
+    then
+        $ScoreResult.score_result += 9;
+end
+
+rule "scorecard_yushai1_scorecard29"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(the_number_of_cards > 4) // 已持有信用卡数量 大于 4
+    then
+        $ScoreResult.score_result += -4;
+end
+
+rule "scorecard_yushai1_scorecard30"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(house == "T") // 住房（形式） 等于 T
+    then
+        $ScoreResult.score_result += 4;
+end
+
+rule "scorecard_yushai1_scorecard31"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(house == "M") // 住房（形式） 等于 M
+    then
+        $ScoreResult.score_result += 9;
+end
+
+rule "scorecard_yushai1_scorecard32"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(house == "O") // 住房（形式） 等于 O
+    then
+        $ScoreResult.score_result += 16;
+end
+
+rule "scorecard_yushai1_scorecard33"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(house == "N") // 住房（形式） 等于 N
+    then
+        $ScoreResult.score_result += -5;
+end
+
+rule "scorecard_yushai1_scorecard34"
+    when
+        $Score1 : Score1()
+        $ScoreResult : ScoreResult()
+        Score1(house == "other") // 住房（形式） 等于 other
+    then
+        $ScoreResult.score_result += 0;
+end

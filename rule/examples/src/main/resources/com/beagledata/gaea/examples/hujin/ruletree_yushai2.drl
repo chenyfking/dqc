@@ -1,0 +1,101 @@
+// 历史信用-征信被查询次数审核
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreCredit
+import com.beagledata.gaea.examples.hujin.PreCredit2
+import com.beagledata.gaea.examples.hujin.Reason
+
+rule "ruletree_yushai2_yushai1"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(idCardHitSelectedTimesInOneYear >= 2) // 信用历史.借款人身份证1年内命中被查询名单次数 大于或等于 2
+    then
+        $PreCredit2.preCredit23 = "拒绝"; // 赋值:信用历史审查结果.信用历史三审结果 = 拒绝
+        $Reason.describe = "此借款人近一年征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近一年征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree_yushai2_yushai2"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear < 2 // 信用历史.借款人身份证1年内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneMonth >= 2 // 信用历史.借款人身份证1月内命中被查询名单次数 大于或等于 2
+        )
+    then
+        $PreCredit2.preCredit23 = "拒绝"; // 赋值:信用历史审查结果.信用历史三审结果 = 拒绝
+        $Reason.describe = "此借款人近一月征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近一月征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree_yushai2_yushai3"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear < 2 // 信用历史.借款人身份证1年内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneMonth < 2 // 信用历史.借款人身份证1月内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneWeek >= 1 // 信用历史.借款人身份证1周内有命中被查询名单次数 大于或等于 1
+        )
+    then
+        $PreCredit2.preCredit23 = "拒绝"; // 赋值:信用历史审查结果.信用历史三审结果 = 拒绝
+        $Reason.describe = "此借款人近期（约一周）征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近期（约一周）征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree_yushai2_yushai4"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear < 2 // 信用历史.借款人身份证1年内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneMonth < 2 // 信用历史.借款人身份证1月内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneWeek < 1 // 信用历史.借款人身份证1周内有命中被查询名单次数 小于 1
+        )
+    then
+        $PreCredit2.preCredit23 = "人工审核"; // 赋值:信用历史审查结果.信用历史三审结果 = 人工审核
+end
+
+rule "ruletree_yushai2_yushai5"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear < 2 // 信用历史.借款人身份证1年内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneMonth < 2 // 信用历史.借款人身份证1月内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneWeek == "" // 信用历史.借款人身份证1周内有命中被查询名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit23 = "人工审核"; // 赋值:信用历史审查结果.信用历史三审结果 = 人工审核
+        $Reason.describe = "此借款人存在刻意隐瞒近期征信查询嫌疑"; // 赋值:不通过原因.描述 = 此借款人存在刻意隐瞒近期征信查询嫌疑
+end
+
+rule "ruletree_yushai2_yushai6"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear < 2 // 信用历史.借款人身份证1年内命中被查询名单次数 小于 2
+            && idCardHitSelectedTimesInOneMonth == "" // 信用历史.借款人身份证1月内命中被查询名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit23 = "人工审核"; // 赋值:信用历史审查结果.信用历史三审结果 = 人工审核
+        $Reason.describe = "此借款人存在刻意隐瞒近期征信查询嫌疑"; // 赋值:不通过原因.描述 = 此借款人存在刻意隐瞒近期征信查询嫌疑
+end
+
+rule "ruletree_yushai2_yushai7"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitSelectedTimesInOneYear == "" // 信用历史.借款人身份证1年内命中被查询名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit23 = "人工审核"; // 赋值:信用历史审查结果.信用历史三审结果 = 人工审核
+        $Reason.describe = "此借款人没有填写人行征信查询次数，存在欺瞒嫌疑"; // 赋值:不通过原因.描述 = 此借款人没有填写人行征信查询次数，存在欺瞒嫌疑
+end

@@ -1,0 +1,131 @@
+// 历史信用-逾期天数审核
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreCredit
+import com.beagledata.gaea.examples.hujin.PreCredit2
+import com.beagledata.gaea.examples.hujin.Reason
+
+rule "ruletree_yushai1_yushai1"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(idCardHitOverdueInTwoYearsTimes >= 4) // 信用历史.借款人身份证两年内命中信贷逾期名单次数 大于或等于 4
+    then
+        $PreCredit2.preCredit22 = "拒绝"; // 赋值:信用历史审查结果.信用历史二审结果 = 拒绝
+        $Reason.describe = "借款人两年内存在逾期情况，且逾期次数过多"; // 赋值:不通过原因.描述 = 借款人两年内存在逾期情况，且逾期次数过多
+end
+
+rule "ruletree_yushai1_yushai2"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes >= 2 // 信用历史.借款人身份证命中贷款逾期30天名单次数 大于或等于 2
+        )
+    then
+        $PreCredit2.preCredit22 = "拒绝"; // 赋值:信用历史审查结果.信用历史二审结果 = 拒绝
+        $Reason.describe = "借款人存在逾期30天情况，且逾期次数过多"; // 赋值:不通过原因.描述 = 借款人存在逾期30天情况，且逾期次数过多
+end
+
+rule "ruletree_yushai1_yushai3"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes < 2 // 信用历史.借款人身份证命中贷款逾期30天名单次数 小于 2
+            && idCardHitOverdue90ListTimes >= 1 // 信用历史.借款人身份证命中贷款逾期90天名单次数 大于或等于 1
+        )
+    then
+        $PreCredit2.preCredit22 = "拒绝"; // 赋值:信用历史审查结果.信用历史二审结果 = 拒绝
+        $Reason.describe = "借款人存在逾期90天情况，且逾期次数过多"; // 赋值:不通过原因.描述 = 借款人存在逾期90天情况，且逾期次数过多
+end
+
+rule "ruletree_yushai1_yushai4"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes < 2 // 信用历史.借款人身份证命中贷款逾期30天名单次数 小于 2
+            && idCardHitOverdue90ListTimes < 1 // 信用历史.借款人身份证命中贷款逾期90天名单次数 小于 1
+            && idCardHitOverdue180ListTimes >= 1 // 信用历史.借款人身份证命中贷款逾期180天名单次数 大于或等于 1
+        )
+    then
+        $PreCredit2.preCredit22 = "拒绝"; // 赋值:信用历史审查结果.信用历史二审结果 = 拒绝
+        $Reason.describe = "借款人存在逾期180天情况，且逾期次数过多"; // 赋值:不通过原因.描述 = 借款人存在逾期180天情况，且逾期次数过多
+end
+
+rule "ruletree_yushai1_yushai5"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes < 2 // 信用历史.借款人身份证命中贷款逾期30天名单次数 小于 2
+            && idCardHitOverdue90ListTimes < 1 // 信用历史.借款人身份证命中贷款逾期90天名单次数 小于 1
+            && idCardHitOverdue180ListTimes < 1 // 信用历史.借款人身份证命中贷款逾期180天名单次数 小于 1
+        )
+    then
+        $PreCredit2.preCredit22 = "人工审核"; // 赋值:信用历史审查结果.信用历史二审结果 = 人工审核
+end
+
+rule "ruletree_yushai1_yushai6"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes < 2 // 信用历史.借款人身份证命中贷款逾期30天名单次数 小于 2
+            && idCardHitOverdue90ListTimes < 1 // 信用历史.借款人身份证命中贷款逾期90天名单次数 小于 1
+            && idCardHitOverdue180ListTimes == "" // 信用历史.借款人身份证命中贷款逾期180天名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit22 = "人工审核"; // 赋值:信用历史审查结果.信用历史二审结果 = 人工审核
+end
+
+rule "ruletree_yushai1_yushai7"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes == "" // 信用历史.借款人身份证命中贷款逾期30天名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit22 = "人工审核"; // 赋值:信用历史审查结果.信用历史二审结果 = 人工审核
+        $Reason.describe = "人行征信情况不明"; // 赋值:不通过原因.描述 = 人行征信情况不明
+end
+
+rule "ruletree_yushai1_yushai8"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes < 4 // 信用历史.借款人身份证两年内命中信贷逾期名单次数 小于 4
+            && idCardHitOverdue30ListTimes == "" // 信用历史.借款人身份证命中贷款逾期30天名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit22 = "人工审核"; // 赋值:信用历史审查结果.信用历史二审结果 = 人工审核
+        $Reason.describe = "人行征信情况不明"; // 赋值:不通过原因.描述 = 人行征信情况不明
+end
+
+rule "ruletree_yushai1_yushai9"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2: PreCredit2()
+        $Reason : Reason()
+        PreCredit(
+            idCardHitOverdueInTwoYearsTimes == "" // 信用历史.借款人身份证两年内命中信贷逾期名单次数 为空
+        )
+    then
+        $PreCredit2.preCredit22 = "人工审核"; // 赋值:信用历史审查结果.信用历史二审结果 = 人工审核
+        $Reason.describe = "人行征信情况不明"; // 赋值:不通过原因.描述 = 人行征信情况不明
+end

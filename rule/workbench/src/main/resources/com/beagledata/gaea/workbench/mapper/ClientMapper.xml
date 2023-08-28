@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.ClientMapper">
+    <resultMap id="clientResultMap" type="Client">
+        <id property="id" column="id" />
+        <result property="uuid" column="uuid" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="name" column="name" />
+        <result property="baseUrl" column="base_url" />
+        <result property="disabled" column="is_disabled" />
+        <result property="serialNumber" column="serial_number" />
+    </resultMap>
+
+    <select id="selectRecently" resultMap="clientResultMap">
+         SELECT id, uuid, create_time, update_time, name, base_url, is_disabled
+         FROM t_client
+         WHERE !is_deleted AND !is_disabled
+         ORDER BY id DESC
+         LIMIT 0, 1
+    </select>
+
+    <select id="selectByUuid" resultMap="clientResultMap">
+        SELECT uuid, create_time, update_time, name, base_url, is_disabled
+        FROM t_client
+        WHERE uuid = #{uuid}
+    </select>
+
+    <select id="selectByUrl" resultMap="clientResultMap">
+        SELECT uuid, create_time, update_time, name, base_url, is_disabled
+        FROM t_client
+        WHERE base_url = #{url}
+        AND !is_deleted
+    </select>
+
+    <select id="selectByMicro" resultMap="clientResultMap">
+        SELECT t1.uuid, t1.name, t1.base_url, t1.is_disabled
+        FROM t_client t1, t_micro_route t2
+        WHERE t2.micro_uuid = #{microUuid} AND t1.uuid = t2.client_uuid
+    </select>
+
+    <insert id="insert">
+        INSERT INTO t_client (uuid, create_time, name, base_url, serial_number)
+        VALUES (#{uuid}, NOW(), #{name}, #{baseUrl}, #{serialNumber})
+    </insert>
+
+    <update id="update">
+        UPDATE t_client
+        <set>
+            update_time = NOW(),
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="baseUrl != null and baseUrl != ''">
+                base_url = #{baseUrl},
+            </if>
+            <if test="serialNumber != null and serialNumber != ''">
+                serial_number = #{serialNumber},
+            </if>
+            <if test="disabled != null">
+                is_disabled = #{disabled}
+            </if>
+        </set>
+        WHERE uuid = #{uuid} AND !is_deleted
+    </update>
+
+    <update id="delete">
+        UPDATE t_client
+        SET update_time = NOW(), is_deleted = true, delete_version = id
+        WHERE uuid = #{uuid};
+    </update>
+
+    <select id="countByBaseUrl" resultType="int">
+        SELECT COUNT(*) FROM t_client WHERE base_url = #{baseUrl} AND !is_deleted
+    </select>
+
+    <select id="selectAll" resultMap="clientResultMap">
+        SELECT uuid, create_time, name, base_url, is_disabled, serial_number
+        FROM t_client
+        WHERE !is_deleted
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectAllAvailable" resultMap="clientResultMap">
+        SELECT uuid, create_time, name, base_url, is_disabled, serial_number
+        FROM t_client
+        WHERE !is_deleted
+        AND !is_disabled
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectByUuids" resultMap="clientResultMap">
+        SELECT uuid, name, base_url
+        FROM t_client
+        WHERE uuid IN
+        <foreach collection="list" item="item" open="(" close=")" separator=",">
+            #{item.uuid}
+        </foreach>
+        AND !is_deleted AND !is_disabled
+    </select>
+</mapper>

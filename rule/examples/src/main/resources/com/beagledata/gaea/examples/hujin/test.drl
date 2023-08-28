@@ -1,0 +1,17 @@
+package com.beagledata.gaea.examples.hujin
+
+rule test
+    ruleflow-group "test"
+
+    when
+    then
+        System.out.println("----");
+end
+
+rule test2
+    ruleflow-group "test2"
+
+    when
+    then
+        System.out.println("+++++");
+end

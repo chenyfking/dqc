@@ -1,0 +1,60 @@
+spring:
+  profiles:
+    active: ${ENV:dev}
+  application:
+    name: gateway
+  datasource:
+    druid:
+      type: com.alibaba.druid.pool.DruidDataSource
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://${DATABASE_IP:192.168.100.19}:3306/${DATABASE_NAME:gaea}?allowMultiQueries=true&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+      username: ${DATABASE_USERNAME:gaea}
+      password: ${DATABASE_PASSWORD:gaea@skycloud123}
+      connectionProperties: config.decrypt=false
+      initialSize: ${DATABASE_INITIAL_SIZE:10}
+      minIdle: ${DATABASE_MIN_IDLE:10}
+      maxActive: ${DATABASE_MAX_ACTIVE:100}
+      maxWait: ${DATABASE_MAX_WAIT:60000}
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      validationQuery: SELECT 1
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      poolPreparedStatements: false
+      maxPoolPreparedStatementPerConnectionSize: 20
+
+server:
+  context-path: ${SERVER_CONTEXT_PATH:/gateway}
+  port: ${SERVER_PORT:33007}
+
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath:com/beagledata/gaea/gateway/mapper/*.xml
+  type-aliases-package: com.beagledata.gaea.gateway.entity
+
+zuul:
+  retryable: true #是否重试 （ribbon.restclient.enabled = true 一起配置实现故障转移）
+  semaphore:
+    max-semaphores: ${ZUUL_SEMAPHORE_MAX:5000} #最大信号量(默认100 ，类似并发量，超过会被限流)
+
+ribbon:
+  ConnectTimeout: ${RIBBON_CONNECT_TIMEOUT:250} # 连接超时时间(ms)
+  ReadTimeout: ${RIBBON_READ_TIMEOUT:120000} # 通信超时时间(ms)
+  OkToRetryOnAllOperations: ${RIBBON_OK_TO_RETRY_ON_ALL_OPERATIONS:true} # 是否对所有操作重试
+  MaxAutoRetriesNextServer: ${RIBBON_MAX_AUTO_RETRIES_NEXT_SERVER:2} # 同一服务不同实例的重试次数
+  MaxAutoRetries: ${RIBBON_MAX_AUTO_RETRIES:1} # 同一实例的重试次数
+  ServerListRefreshInterval: ${RIBBON_SERVER_LIST_REFRESH_INTERVAL:60000} #刷新负载serverlist的时间间隔（ms）
+  eager-load:
+    enabled: true #是否饥饿加载（默认懒加载，第一次请求很慢）
+  eureka:
+    enabled: false #停用eureka （负载均衡需要停掉）
+  restclient:
+    enabled: true #（与zuul.retryable = true 一起配置实现故障转移）
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMillisecond: ${HYSTRIX_TIMEOUT:6000} # 熔断超时时长：6000ms

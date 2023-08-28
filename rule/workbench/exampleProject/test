@@ -1,0 +1,151 @@
+{
+  "attrs": [],
+  "tree": {
+    "fact": {
+      "id": "a39dc94f23ec40bab3f0f499fc4a58ed",
+      "fieldId": "oBTJxA"
+    },
+    "children": [
+      {
+        "nodeType": "CONDITION",
+        "condition": {
+          "op": "GT",
+          "right": {
+            "type": "INPUT",
+            "input": {
+              "value": 12,
+              "type": "Integer"
+            }
+          }
+        },
+        "children": [
+          {
+            "nodeType": "CONDITION",
+            "condition": {
+              "op": "GTE",
+              "right": {
+                "type": "FACT",
+                "fact": {
+                  "id": "a39dc94f23ec40bab3f0f499fc4a58ed",
+                  "fieldId": "5RuvTT"
+                }
+              }
+            },
+            "children": [
+              {
+                "nodeType": "ACTION",
+                "rhs": {
+                  "actions": [
+                    {
+                      "type": "ASSIGN",
+                      "left": {
+                        "id": "6c18b48fbbc04d388245231b99bbb2ea",
+                        "fieldId": "uWRmdr"
+                      },
+                      "right": {
+                        "type": "INPUT",
+                        "input": {
+                          "value": 1,
+                          "type": "Double"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "nodeType": "CONDITION",
+            "condition": {
+              "op": "LT",
+              "right": {
+                "type": "FACT",
+                "fact": {
+                  "id": "a39dc94f23ec40bab3f0f499fc4a58ed",
+                  "fieldId": "5RuvTT"
+                }
+              }
+            },
+            "children": [
+              {
+                "nodeType": "ACTION",
+                "rhs": {
+                  "actions": [
+                    {
+                      "type": "ASSIGN",
+                      "left": {
+                        "id": "6c18b48fbbc04d388245231b99bbb2ea",
+                        "fieldId": "ldlnIG"
+                      },
+                      "right": {
+                        "type": "FACT",
+                        "fact": {
+                          "id": "a39dc94f23ec40bab3f0f499fc4a58ed",
+                          "fieldId": "OVVl1q"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "nodeType": "CONDITION",
+        "condition": {
+          "op": "LTE",
+          "right": {
+            "type": "INPUT",
+            "input": {
+              "value": 12,
+              "type": "Integer"
+            }
+          }
+        },
+        "children": [
+          {
+            "nodeType": "ACTION",
+            "rhs": {
+              "actions": [
+                {
+                  "type": "FUNC",
+                  "func": {
+                    "name": "数学函数",
+                    "method": "求最小值",
+                    "params": [
+                      {
+                        "name": "数字1",
+                        "type": "Number",
+                        "value": {
+                          "type": "INPUT",
+                          "input": {
+                            "value": 33,
+                            "type": "Number"
+                          }
+                        }
+                      },
+                      {
+                        "name": "数字2",
+                        "type": "Number",
+                        "value": {
+                          "type": "FACT",
+                          "fact": {
+                            "id": "a39dc94f23ec40bab3f0f499fc4a58ed",
+                            "fieldId": "oBTJxA"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

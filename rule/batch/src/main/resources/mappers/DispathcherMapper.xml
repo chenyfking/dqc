@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.batch.mapper.DispatcherMapper">
+    <update id="updateClaimEntries">
+        UPDATE
+        ${tableName}
+        SET
+        gaea_processing_owner=#{processingOwner},
+        gaea_processing_time =#{processingTime},
+        gaea_processing_state = 'IN_PROCESSING'
+        WHERE
+        (
+        <!--执行者为空并且状态可用-->
+        gaea_processing_owner IS NULL
+        AND gaea_processing_state = 'AVAILABLE'
+        )
+        OR (
+        <!--或者执行超时-->
+        gaea_processing_time IS NOT NULL
+        AND gaea_processing_time &lt; #{timeout}
+        AND gaea_processing_state != 'PROCESSED'
+        AND gaea_processing_state != 'FAILED'
+        )
+        ORDER BY
+            gaea_id ASC
+        LIMIT #{limit}
+    </update>
+    <select id="selectReadyEntries" resultType="map">
+        SELECT *
+        FROM ${tableName}
+        WHERE
+            gaea_processing_owner=#{processingOwner} AND gaea_processing_state = 'IN_PROCESSING'  AND gaea_processing_time = #{processingTime}
+        ORDER BY gaea_id ASC
+        LIMIT #{limit}
+    </select>
+    <update id="updateOnSuccess">
+        UPDATE
+            ${tableName}
+        SET
+            gaea_processing_state = 'PROCESSED'
+        WHERE
+            gaea_id = #{id}
+    </update>
+    <update id="updateOnError">
+        UPDATE
+            ${tableName}
+        SET
+            gaea_processing_owner= null ,
+            gaea_processing_time = null,
+            gaea_processing_state = 'AVAILABLE',
+            gaea_error_count = gaea_error_count + 1
+        WHERE
+            gaea_id = #{id}
+    </update>
+    <update id="updateOnFailed">
+        UPDATE
+            ${tableName}
+        SET
+            gaea_processing_state = 'FAILED',
+            gaea_error_count = gaea_error_count + 1
+        WHERE
+            gaea_id = #{id}
+    </update>
+    <select id="selectInputTableColumns" resultType="String">
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = (SELECT DATABASE()) AND TABLE_NAME = #{tableName}
+    </select>
+
+    <select id="countInputTableForExists" resultType="int">
+        SELECT COUNT(1)
+        FROM information_schema.tables
+        WHERE TABLE_NAME = #{tableName}
+    </select>
+    <update id="updateInputTableColumns">
+        ALTER table #{tableName} ADD (
+            `gaea_id` int(11) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `gaea_processing_owner` varchar(50) DEFAULT NULL COMMENT '处理节点',
+            `gaea_processing_time` varchar(14) DEFAULT NULL COMMENT '处理时间',
+            `gaea_processing_state` varchar(14) DEFAULT 'AVAILABLE' COMMENT '处理状态',
+            `gaea_error_count` int(11) DEFAULT '0' COMMENT '处理错误次数',
+            KEY `idx_owner_time_state` (`gaea_processing_owner`,`gaea_processing_time`,`gaea_processing_state`)
+        )
+    </update>
+    <select id="countInputTableEntries" resultType="int">
+        SELECT COUNT(1)
+        FROM #{tableName}
+        WHERE
+        (
+        <!--执行者为空并且状态可用-->
+        gaea_processing_owner IS NULL
+        AND gaea_processing_state = 'AVAILABLE'
+        )
+        OR (
+        <!--或者执行超时-->
+        gaea_processing_time IS NOT NULL
+        AND gaea_processing_time &lt; #{timeout}
+        AND gaea_processing_state != 'PROCESSED'
+        AND gaea_processing_state != 'FAILED'
+        )
+    </select>
+    <update id="createOutputTable">
+        CREATE TABLE IF NOT EXISTS #{tableName} {
+            `create_time` varchar(19) DEFAULT NULL COMMENT '输出时间',
+            `result` text DEFAULT NULL COMMENT '输出结果',
+            `ywrq` varchar(8) DEFAULT NULL COMMENT '业务日期',
+            `seq_no` varchar(40) DEFAULT NULL COMMENT '流水号',
+            KEY `idx_create_time` (`create_time`),
+            KEY `idx_ywrq` (`ywrq`)
+        }ENGINE=InnoDB DEFAULT CHARACTER=utf8;
+    </update>
+</mapper>

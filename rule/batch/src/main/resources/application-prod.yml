@@ -1,0 +1,12 @@
+spring:
+  redis:
+    #单机配置
+    host: ${REDIS_HOST:localhost} # redis IP地址
+    port: ${REDIS_PORT:6379} # redis端口号
+    password: ${REDIS_PASSWORD:} # redis密码，没有不填
+    database: ${REDIS_DATABASE:0} # redis库序号
+    pool:
+      max-active: ${REDIS_POOL_MAX_ACTIVE:20}
+      max-idle: ${REDIS_POOL_MAX_IDLE:10}
+      min-idle: ${REDIS_POOL_MIN_IDLE:10}
+      max-wait: ${REDIS_POOL_MAX_WAIT:3000}

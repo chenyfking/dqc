@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.gateway.mapper.MicroTokenMapper">
+    <resultMap id="microTokenResultMap" type="MicroToken">
+        <id property="id" column="id" />
+        <result property="token" column="token" />
+        <result property="all" column="is_all" />
+        <collection property="microUuids" ofType="String" column="token" select="selectMicroUuids" />
+    </resultMap>
+
+    <select id="selectAll" resultMap="microTokenResultMap">
+        SELECT token, is_all FROM t_token WHERE !is_deleted
+    </select>
+    
+    <select id="selectMicroUuids" resultType="String">
+        SELECT micro_uuid FROM t_micro_token WHERE token = #{token}
+    </select>
+</mapper>

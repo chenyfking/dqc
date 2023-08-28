@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.LogsMapper">
+    <resultMap id="logsResultMap" type="Logs">
+        <id column="id" property="id"/>
+        <result property="optName" column="opt_Name" />
+        <result property="user" column="user" />
+        <result property="clientIp" column="client_ip" />
+        <result property="requestUrl" column="request_url" />
+        <result property="requestType" column="request_type" />
+        <result property="requestMethod" column="request_method" />
+        <result property="requestParams" column="request_params" />
+        <result property="beginTime" column="begin_time" />
+        <result property="endTime" column="end_time" />
+        <result property="backValue" column="back_value" />
+        <result property="success" column="is_success" />
+        <result property="useTime" column="use_time" />
+    </resultMap>
+
+    <select id="selectPage" resultMap="logsResultMap">
+        SELECT t1.opt_name, t1.client_ip, t1.begin_time, t1.is_success, t1.use_time, t2.realname user
+        FROM
+            t_logs t1
+              LEFT JOIN t_user t2 ON t1.user = t2.uuid
+        WHERE 1 = 1
+            <if test="user != null and user != ''">
+                AND t2.realname LIKE concat('%', #{user}, '%')
+            </if>
+            <if test="optName != null and optName != ''">
+                AND t1.opt_name LIKE concat('%', #{optName}, '%')
+            </if>
+            <if test="success != null and success != ''">
+                AND t1.is_success = #{success}
+            </if>
+            <if test="clientIp != null and clientIp != ''">
+                AND t1.client_ip LIKE concat('%', #{clientIp}, '%')
+            </if>
+            <if test="beginTime != null and beginTime != ''">
+                AND t1.begin_time &gt; #{beginTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND t1.begin_time &lt; #{endTime}
+            </if>
+            <if test="isAdmin == false">
+                <choose>
+                    <when test="isOrgAdmin == true">
+                        AND t2.org_uuid = (SELECT t3.org_uuid FROM t_user t3 WHERE t3.uuid = #{userUuid})
+                    </when>
+                    <otherwise>
+                        AND t2.uuid = #{userUuid}
+                    </otherwise>
+                </choose>
+            </if>
+        ORDER BY t1.id DESC
+        LIMIT #{start}, #{limit}
+    </select>
+
+    <select id="countTotal" resultType="Integer">
+        SELECT count(1)
+        FROM
+            t_logs t1
+            LEFT JOIN t_user t2 ON t1.user = t2.uuid
+        WHERE 1 = 1
+        <if test="user != null and user != ''">
+            AND t2.realname LIKE concat('%', #{user}, '%')
+        </if>
+        <if test="optName != null and optName != ''">
+            AND t1.opt_name LIKE concat('%', #{optName}, '%')
+        </if>
+        <if test="success != null and success != ''">
+            AND t1.is_success = #{success}
+        </if>
+        <if test="clientIp != null and clientIp != ''">
+            AND t1.client_ip LIKE concat('%', #{clientIp}, '%')
+        </if>
+        <if test="beginTime != null and beginTime != ''">
+            AND t1.begin_time &gt; #{beginTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND t1.begin_time &lt; #{endTime}
+        </if>
+        <if test="isAdmin == false">
+            <choose>
+                <when test="isOrgAdmin == true">
+                    AND t2.org_uuid = (SELECT t3.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t3 WHERE t3.uuid = #{userUuid})
+                </when>
+                <otherwise>
+                    AND t2.uuid = #{userUuid}
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectPageWithoutDataIsolate" resultMap="logsResultMap">
+        SELECT t1.opt_name, t1.client_ip, t1.begin_time, t1.is_success, t1.use_time, t2.realname user
+        FROM
+            t_logs t1
+              LEFT JOIN t_user t2 ON t1.user = t2.uuid
+        WHERE 1 = 1
+            <if test="user != null and user != ''">
+                AND t2.realname LIKE concat('%', #{user}, '%')
+            </if>
+            <if test="userUuid != null and userUuid != ''">
+                AND t2.uuid = #{userUuid}
+            </if>
+            <if test="optName != null and optName != ''">
+                AND t1.opt_name LIKE concat('%', #{optName}, '%')
+            </if>
+            <if test="success != null and success != ''">
+                AND t1.is_success = #{success}
+            </if>
+            <if test="clientIp != null and clientIp != ''">
+                AND t1.client_ip LIKE concat('%', #{clientIp}, '%')
+            </if>
+            <if test="beginTime != null and beginTime != ''">
+                AND t1.begin_time &gt; #{beginTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND t1.begin_time &lt; #{endTime}
+            </if>
+        ORDER BY t1.id DESC
+        LIMIT #{start}, #{limit}
+    </select>
+
+    <select id="countTotalWithoutDataIsolate" resultType="Integer">
+        SELECT count(1)
+        FROM
+            t_logs t1
+            LEFT JOIN t_user t2 ON t1.user = t2.uuid
+        WHERE 1 = 1
+        <if test="user != null and user != ''">
+            AND t2.realname LIKE concat('%', #{user}, '%')
+        </if>
+        <if test="userUuid != null and userUuid != ''">
+            AND t2.uuid = #{userUuid}
+        </if>
+        <if test="optName != null and optName != ''">
+            AND t1.opt_name LIKE concat('%', #{optName}, '%')
+        </if>
+        <if test="success != null and success != ''">
+            AND t1.is_success = #{success}
+        </if>
+        <if test="clientIp != null and clientIp != ''">
+            AND t1.client_ip LIKE concat('%', #{clientIp}, '%')
+        </if>
+        <if test="beginTime != null and beginTime != ''">
+            AND t1.begin_time &gt; #{beginTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND t1.begin_time &lt; #{endTime}
+        </if>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_logs(
+            id, opt_name, user, client_ip, request_url, request_type, request_method, request_params,
+            begin_time, end_time, back_value, is_success, use_time
+        )
+        VALUES(
+            #{id}, #{optName}, #{user}, #{clientIp}, #{requestUrl}, #{requestType}, #{requestMethod},
+            #{requestParams}, #{beginTime}, #{endTime}, #{backValue}, #{success}, #{useTime}
+        );
+    </insert>
+</mapper>

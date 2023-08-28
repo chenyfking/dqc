@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.ProjectUserMapper">
+    <resultMap id="projectPermissionMap" type="com.beagledata.gaea.workbench.entity.ProjectUser">
+        <id property="id" column="id"/>
+        <result property="projectUuid" column="project_uuid"/>
+        <result property="userUuid" column="user_uuid" />
+    </resultMap>
+
+    <resultMap id="userMap" type="com.beagledata.gaea.workbench.entity.User">
+        <id property="id" column="id"/>
+        <id property="uuid" column="uuid"/>
+        <result property="realname" column="realname"/>
+        <association property="org" resultMap="orgResultMap" />
+    </resultMap>
+
+    <resultMap id="orgResultMap" type="Org">
+        <id column="id" property="id"/>
+        <result column="orgUuid" property="uuid" />
+        <result column="orgName" property="name" />
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_project_user (project_uuid, user_uuid) VALUES (#{projectUser.projectUuid}, #{projectUser.userUuid})
+        ON DUPLICATE KEY UPDATE project_uuid = #{projectUser.projectUuid}, user_uuid = #{projectUser.userUuid}
+    </insert>
+
+    <insert id="batchInsert">
+        INSERT INTO t_project_user (project_uuid, user_uuid)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.projectUuid}, #{item.userUuid})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        <foreach collection="list" item="item" separator=",">
+            id = id
+        </foreach>
+    </insert>
+
+    <select id="select" resultMap="projectPermissionMap">
+        SELECT id, project_uuid, user_uuid FROM t_project_user WHERE 1=1
+        <if test="projectUser != null">
+            <if test="projectUser.projectId != null and projectUser.projectId > 0">
+              AND project_id = #{projectUser.projectId}
+            </if>
+            <if test="projectUser.userId != null and projectUser.userId > 0">
+              AND user_id = #{projectUser.userId}
+            </if>
+        </if>
+        ORDER BY id DESC ;
+    </select>
+
+    <select id="selectUserByPrj" resultMap="userMap">
+        SELECT
+            t1.id,
+            t1.uuid,
+            if(t1.realname = '' OR t1.realname is null , t1.username, t1.realname) realname,
+            t3.name AS orgName
+        FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3 ON t3.uuid = t1.org_uuid
+        JOIN t_project_user t2 ON t1.uuid = t2.user_uuid
+        WHERE t2.project_uuid = #{projectUuid}
+        AND t1.username != 'superadmin'
+    </select>
+
+    <delete id="deleteByUser">
+        delete from  t_project_user WHERE user_uuid = #{userUuid}
+    </delete>
+
+    <delete id="deleteByProject">
+        delete from  t_project_user WHERE project_uuid = #{projectUuid} and user_uuid != #{userUuid}
+    </delete>
+</mapper>

@@ -1,0 +1,145 @@
+// 授信额度
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.ScoreResult
+import com.beagledata.gaea.examples.hujin.CreditRating
+import com.beagledata.gaea.examples.hujin.CreditExtension
+
+rule "ruletree_yushai4_yushai1"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 65 // 评分结果.分数为 大于或等于 65
+            && score_result <= 69 // 评分结果.分数为 小于或等于 69
+        )
+    then
+        $CreditRating.rank = "CC"; // 赋值:信用等级.评级为 = CC
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai2"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 70 // 评分结果.分数为 大于或等于 70
+            && score_result <= 74 // 评分结果.分数为 小于或等于 74
+        )
+    then
+        $CreditRating.rank = "B"; // 赋值:信用等级.评级为 = B
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai3"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 75 // 评分结果.分数为 大于或等于 75
+            && score_result <= 79 // 评分结果.分数为 小于或等于 79
+        )
+    then
+        $CreditRating.rank = "BB"; // 赋值:信用等级.评级为 = BB
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai4"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 80 // 评分结果.分数为 大于或等于 80
+            && score_result <= 84 // 评分结果.分数为 小于或等于 84
+        )
+    then
+        $CreditRating.rank = "BBB"; // 赋值:信用等级.评级为 = BBB
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai5"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 85 // 评分结果.分数为 大于或等于 85
+            && score_result <= 89 // 评分结果.分数为 小于或等于 89
+        )
+    then
+        $CreditRating.rank = "A"; // 赋值:信用等级.评级为 = A
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai6"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 90 // 评分结果.分数为 大于或等于 90
+            && score_result <= 94 // 评分结果.分数为 小于或等于 94
+        )
+    then
+        $CreditRating.rank = "AA"; // 赋值:信用等级.评级为 = AA
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai7"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 95 // 评分结果.分数为 大于或等于 95
+        )
+    then
+        $CreditRating.rank = "AAA"; // 赋值:信用等级.评级为 = AAA
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai8"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 60 // 评分结果.分数为 大于或等于 60
+            && score_result <= 64 // 评分结果.分数为 小于或等于 64
+        )
+    then
+        $CreditRating.rank = "C"; // 赋值:信用等级.评级为 = C
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+rule "ruletree_yushai4_yushai9"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result >= 50 // 评分结果.分数为 大于或等于 50
+            && score_result <= 59 // 评分结果.分数为 小于或等于 59
+        )
+    then
+        $CreditRating.rank = "DD"; // 赋值:信用等级.评级为 = DD
+        $CreditExtension.uppe_limit_of_quota = 10000 + ($ScoreResult.score_result - 50) * 800; // 赋值:授信额度.最大授额上限 = 10000 + (评分结果.分数为 - 50) x 800
+end
+
+
+rule "ruletree_yushai4_yushai10"
+    when
+        $ScoreResult : ScoreResult()
+        $CreditRating : CreditRating()
+        $CreditExtension : CreditExtension()
+        ScoreResult(
+            score_result < 50 // 评分结果.分数为 小于 50
+        )
+    then
+        $CreditRating.rank = "D"; // 赋值:信用等级.评级为 = D
+        $CreditExtension.uppe_limit_of_quota = "极小额贷款或拒绝贷款"; // 赋值:授信额度.最大授额上限 = 极小额贷款或拒绝贷款
+end

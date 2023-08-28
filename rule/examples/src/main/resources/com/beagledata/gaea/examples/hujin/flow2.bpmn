@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions id="Definition"
+             targetNamespace="http://www.jboss.org/drools"
+             typeLanguage="http://www.java.com/javaTypes"
+             expressionLanguage="http://www.mvel.org/2.0"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
+             xmlns:g="http://www.jboss.org/drools/flow/gpd"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:tns="http://www.jboss.org/drools">
+
+    <process processType="Private" isExecutable="true" id="flow2">
+        <extensionElements>
+            <tns:import name="com.beagledata.gaea.examples.hujin.PercentageHandler" />
+        </extensionElements>
+
+        <startEvent id="_1" name="Start" />
+        <exclusiveGateway id="_2" name="Split" gatewayDirection="Diverging">
+        </exclusiveGateway>
+        <scriptTask id="_3" name="Hello1">
+            <script>System.out.println("Hello1");</script>
+        </scriptTask>
+        <scriptTask id="_4" name="Hello2">
+            <script>System.out.println("Hello2");</script>
+        </scriptTask>
+        <endEvent id="_5" name="End" >
+            <terminateEventDefinition/>
+        </endEvent>
+        <endEvent id="_6" name="End" >
+            <terminateEventDefinition/>
+        </endEvent>
+        <endEvent id="_7" name="End" >
+            <terminateEventDefinition/>
+        </endEvent>
+
+        <sequenceFlow id="_1-_2" sourceRef="_1" targetRef="_2" />
+        <sequenceFlow id="_2-_3" sourceRef="_2" targetRef="_3">
+            <conditionExpression xsi:type="tFormalExpression">
+                return PercentageHandler.getInstance("_2").evaluate(0.6);
+            </conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="_2-_4" sourceRef="_2" targetRef="_4">
+            <conditionExpression xsi:type="tFormalExpression">
+                return PercentageHandler.getInstance("_2").evaluate(0.3);
+            </conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="_2-_5" sourceRef="_2" targetRef="_5">
+            <conditionExpression xsi:type="tFormalExpression">
+                return true;
+            </conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="_3-_6" sourceRef="_3" targetRef="_6" />
+        <sequenceFlow id="_4-_7" sourceRef="_4" targetRef="_7" />
+    </process>
+</definitions>

@@ -1,0 +1,13 @@
+spring:
+  redis:
+    #主从哨兵
+    sentinel:
+      master: ${REDIS_SENTINEL_MASTER:mymaster}
+      nodes: ${REDIS_SENTINEL_NODES:172.16.210.201:26379,172.16.210.202:26379,172.16.210.203:26379}
+    password: ${REDIS_PASSWORD:} # redis密码，没有不填
+    database: ${REDIS_DATABASE:0} # redis库序号
+    pool:
+      max-active: ${REDIS_POOL_MAX_ACTIVE:20}
+      max-idle: ${REDIS_POOL_MAX_IDLE:10}
+      min-idle: ${REDIS_POOL_MIN_IDLE:10}
+      max-wait: ${REDIS_POOL_MAX_WAIT:3000}

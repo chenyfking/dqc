@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.UserMapper">
+    <resultMap id="userResultMap" type="User">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="uuid" jdbcType="CHAR" property="uuid"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="realname" jdbcType="VARCHAR" property="realname"/>
+        <result column="username" jdbcType="VARCHAR" property="username"/>
+        <result column="password" jdbcType="CHAR" property="password"/>
+        <result column="salt" jdbcType="CHAR" property="salt"/>
+        <result property="disabled" jdbcType="INTEGER" column="is_disabled" />
+        <result property="lastLoginTime" column="last_login_time" />
+        <result property="lastLoginIP" column="last_login_ip" />
+        <result property="expiredTime" column="expired_time" />
+        <result property="forceLogout" column="is_force_logout" />
+        <result property="lastResetPwd" column="last_reset_pwd" />
+        <association property="org" resultMap="orgResultMap" />
+    </resultMap>
+
+    <resultMap id="roleMap" type="Role">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="uuid" jdbcType="CHAR" property="uuid"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="code" jdbcType="VARCHAR" property="code"/>
+    </resultMap>
+
+    <resultMap id="orgResultMap" type="Org">
+        <id column="id" property="id"/>
+        <result column="orgUuid" property="uuid"/>
+        <result column="orgName" property="name"/>
+    </resultMap>
+
+    <sql id="union_users">
+        (SELECT
+            id,
+            uuid,
+            create_time,
+            update_time,
+            realname,
+            username,
+            password,
+            salt,
+            is_disabled,
+            last_login_time,
+            expired_time,
+            is_force_logout,
+            is_deleted,
+            last_reset_pwd,
+            org_uuid
+        FROM t_user
+        WHERE
+            !is_deleted)
+    </sql>
+
+     <select id="selectByUsername" resultMap="userResultMap">
+        SELECT *
+        FROM t_user
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectAll" resultMap="userResultMap">
+        SELECT  t1.*
+        FROM <include refid="union_users" /> t1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user (create_time, uuid, realname, username, password, salt, expired_time, org_uuid)
+        VALUES (NOW(), #{uuid}, #{realname}, #{username}, #{password}, #{salt}, #{expiredTime}, #{org.uuid})
+    </insert>
+
+    <select id="selectList" resultMap="userResultMap">
+        SELECT
+          t1.*,
+          t3.name AS orgName,
+          t3.uuid AS orgUuid
+        FROM <include refid="union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3 ON t3.uuid = t1.org_uuid
+        <where>
+            AND t1.username != #{superAdminUsername}
+            <if test="isAdmin == false">
+                <if test="isOrg == true">
+                    AND t1.org_uuid = (SELECT t4.org_uuid FROM <include refid="union_users" /> t4 WHERE t4.uuid = #{userUuid})
+                </if>
+            </if>
+            <if test="user.username != null and user.username != ''">
+                AND (t1.username like #{user.username} or t1.realname like #{user.username} or t3.name like #{user.username})
+            </if>
+        </where>
+        ORDER BY id DESC
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <select id="selectNotProjectMember" resultMap="userResultMap">
+        SELECT
+            t1.uuid,
+            if(t1.realname = '' OR t1.realname is null, t1.username, t1.realname) realname,
+            t3.name AS orgName
+        FROM <include refid="union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3 ON t3.uuid = t1.org_uuid
+        LEFT JOIN (SELECT
+            *
+        FROM
+            t_project_user
+        WHERE
+            project_uuid = #{projectUuid}) t4 ON t1.uuid = t4.user_uuid
+        <where>
+            AND t1.username != #{superAdminUsername}
+            <if test="user.realname != null and user.realname != ''">
+                AND (t3.name like #{user.realname} or t1.realname like #{user.realname})
+            </if>
+            AND t4.id is null
+        </where>
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <select id="selectCount" resultType="Integer">
+        SELECT
+            COUNT(1)
+        FROM <include refid="union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3 ON t3.uuid = t1.org_uuid
+        <where>
+            AND t1.username != #{superAdminUsername}
+            <if test="isAdmin == false">
+                <if test="isOrg == true">
+                    AND t1.org_uuid = (SELECT t4.org_uuid FROM <include refid="union_users" /> t4 WHERE t4.uuid = #{userUuid})
+                </if>
+            </if>
+            <if test="user.username != null and user.username != ''">
+                AND (t1.username like #{user.username} or t1.realname like #{user.username} or t3.name like #{user.username})
+            </if>
+        </where>
+    </select>
+
+    <select id="countNotProjectMember" resultType="Integer">
+        SELECT
+          COUNT(1)
+        FROM <include refid="union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3
+        ON t3.uuid = t1.org_uuid
+        LEFT JOIN (
+            SELECT
+                *
+            FROM
+                t_project_user
+            WHERE
+                project_uuid = #{projectUuid}
+        ) t4 ON t1.uuid = t4.user_uuid
+        <where>
+            AND t1.username != #{superAdminUsername}
+            <if test="user.realname != null and user.realname != ''">
+                AND (t3.name like #{user.realname} or t1.realname like #{user.realname})
+            </if>
+            AND t4.id is null
+        </where>
+    </select>
+
+    <update id="delete">
+        UPDATE t_user
+        SET update_time = NOW(), is_deleted = true, delete_version = id
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectByUuid" resultMap="userResultMap">
+        SELECT
+            id,
+            uuid,
+            username,
+            salt
+        FROM
+            t_user
+        WHERE
+            uuid = #{uuid} AND !is_deleted
+    </select>
+
+    <select id="selectOrgByUuid" resultMap="userResultMap">
+        SELECT t1.id, t1.uuid, t1.username, t3.name as orgName, t3.uuid as orgUuid
+        FROM <include refid="union_users" /> t1
+        LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.OrgMapper.union_orgs" /> t3 ON t3.uuid = t1.org_uuid
+        WHERE t1.uuid = #{uuid} AND !t1.is_deleted
+    </select>
+
+    <update id="updateEnable">
+        UPDATE t_user
+        SET update_time = NOW(), is_disabled = #{disabled}
+        WHERE uuid = #{uuid}
+    </update>
+
+    <update id="update">
+        UPDATE t_user
+        <set>
+            <if test="realname != null and realname != ''">
+                realname = #{realname},
+            </if>
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+            <if test="salt != null and salt != ''">
+                salt = #{salt},
+            </if>
+            <if test="lastLoginTime != null">
+                last_login_time = #{lastLoginTime},
+            </if>
+            <if test="lastResetPwd != null">
+                last_reset_pwd = #{lastResetPwd},
+            </if>
+            <if test="expiredTime != null">
+                expired_time = #{expiredTime},
+            </if>
+            <if test="org != null">
+                <if test="org.uuid != null and org.uuid != ''">
+                    org_uuid = #{org.uuid},
+                </if>
+            </if>
+            update_time = NOW()
+        </set>
+        <where>
+            <if test="uuid != null and uuid != ''">
+                uuid = #{uuid}
+            </if>
+            <if test="username != null and username != ''">
+                OR username = #{username}
+            </if>
+        </where>
+    </update>
+
+    <update id="updateForEdit">
+        UPDATE t_user
+        <set>
+            <if test="realname != null and realname != ''">
+                realname = #{realname},
+            </if>
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+            <if test="salt != null and salt != ''">
+                salt = #{salt},
+            </if>
+            <if test="org != null">
+                <if test="org.uuid != null and org.uuid != ''">
+                    org_uuid = #{org.uuid},
+                </if>
+            </if>
+            expired_time = #{expiredTime},
+            update_time = NOW()
+        </set>
+        WHERE uuid = #{uuid}
+    </update>
+
+    <update id="insertOrUpdateCasPwd">
+        INSERT INTO t_person_login (accountName, password, salt)
+        VALUES (#{username}, #{password}, #{salt})
+        ON DUPLICATE KEY UPDATE
+        password = #{password},
+        salt = #{salt}
+        <if test="lastResetPwd != null">
+            , last_reset_pwd = #{lastResetPwd}
+        </if>
+    </update>
+
+    <update id="updateByPrimaryKeySelective">
+        update t_user
+        <set>
+            <if test="realname != null">
+                realname = #{realname,jdbcType=VARCHAR},
+            </if>
+            <if test="password != null">
+                password = #{password,jdbcType=CHAR},
+            </if>
+            <if test="salt != null">
+                salt = #{salt,jdbcType=CHAR},
+            </if>
+            <if test="disabled != null">
+                is_disabled = #{disabled,jdbcType=BIT},
+            </if>
+            <if test="lastLoginTime != null">
+                last_login_time = #{lastLoginTime},
+            </if>
+            <if test="lastLoginIP != null">
+                last_login_ip = INET_ATON(#{lastLoginIP}),
+            </if>
+            <if test="forceLogout != null">
+                is_force_logout = #{forceLogout},
+            </if>
+            <if test="lastResetPwd != null">
+                last_reset_pwd = #{lastResetPwd},
+            </if>
+            update_time = NOW()
+        </set>
+        where uuid = #{uuid}
+    </update>
+
+    <select id="selectUserRole" resultMap="roleMap">
+        SELECT r.code, r.id, r.name
+        FROM t_user_role ur
+        JOIN t_role r ON ur.role_id = r.id
+        WHERE ur.user_uuid = #{userUuid}
+    </select>
+
+    <insert id="insertUserRoles">
+        INSERT INTO t_user_role (user_uuid, role_id)
+        VALUES
+        <foreach collection="roleIds" item="item" separator=",">
+            (#{userUuid}, #{item})
+        </foreach>
+    </insert>
+
+    <delete id="deleteUserRoles">
+        DELETE FROM t_user_role
+        WHERE user_uuid = #{userUuid} AND role_id IN
+        <foreach collection="roleIds" open="(" close=")" item="item" separator=",">
+          #{item}
+        </foreach>
+    </delete>
+
+    <select id="selectBaseByUsername" resultMap="userResultMap">
+        SELECT t.id, t.uuid, t.realname, t.username, t.expired_time, t.last_reset_pwd,t.is_force_logout
+        FROM <include refid="union_users" /> t
+        WHERE username = #{username}
+        limit 1
+    </select>
+
+    <select id="selectBaseByUsernameFromPerson" resultMap="userResultMap">
+        SELECT accountName as username, last_reset_pwd
+        FROM t_person_login
+        WHERE accountName = #{username}
+    </select>
+
+    <select id="getOrgUserUuid" resultType="String">
+        SELECT t1.uuid
+        FROM <include refid="union_users" /> t1
+        WHERE t1.org_uuid = (SELECT t4.org_uuid FROM <include refid="union_users" /> t4 WHERE t4.uuid = #{userUuid})
+    </select>
+
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(*) FROM t_user WHERE username = #{username} AND !is_deleted
+    </select>
+
+    <select id="selectByOrgUuid" resultMap="userResultMap">
+        SELECT
+            t1.*,
+            t2.name AS orgName,
+            t2.uuid AS orgUuid
+        FROM
+            t_user t1
+        LEFT JOIN t_org t2 ON t1.org_uuid = t2.uuid
+        WHERE t1.org_uuid = #{orgUuid}
+        AND !t1.is_deleted
+        <if test="keywords != null and keywords !=''">
+            AND (t1.username LIKE concat('%',#{keywords},'%') OR t1.realname LIKE concat('%',#{keywords},'%'))
+        </if>
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <select id="selectCountByOrgUuid" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            t_user t1
+        LEFT JOIN t_org t2 ON t1.org_uuid = t2.uuid
+        WHERE t1.org_uuid = #{orgUuid}
+        AND !t1.is_deleted
+        <if test="keywords != null and keywords !=''">
+            AND (t1.username LIKE concat('%',#{keywords},'%') OR t1.realname LIKE concat('%',#{keywords},'%'))
+        </if>
+    </select>
+
+    <select id="selectByRoleId" resultMap="userResultMap">
+        SELECT
+            t2.*, t3.name AS orgName,
+            t3.uuid AS orgUuid
+        FROM
+            t_user_role t1
+        LEFT JOIN t_user t2 ON t1.user_uuid = t2.uuid
+        LEFT JOIN t_org t3 ON t2.org_uuid = t3.uuid
+        WHERE
+            t1.role_id = #{roleId}
+        AND !t2.is_deleted
+        <if test="keywords != null and keywords !=''">
+            AND (t2.username LIKE concat('%',#{keywords},'%') OR t2.realname LIKE concat('%',#{keywords},'%') OR t3.name LIKE concat('%',#{keywords},'%'))
+        </if>
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <select id="selectCountByRoleId" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            t_user_role t1
+        LEFT JOIN t_user t2 ON t1.user_uuid = t2.uuid
+        LEFT JOIN t_org t3 ON t2.org_uuid = t3.uuid
+        WHERE
+            t1.role_id = #{roleId}
+        AND !t2.is_deleted
+        <if test="keywords != null and keywords !=''">
+            AND (t2.username LIKE concat('%',#{keywords},'%') OR t2.realname LIKE concat('%',#{keywords},'%') OR t3.name LIKE concat('%',#{keywords},'%'))
+        </if>
+    </select>
+
+    <select id="getUserByUuid" resultType="HashMap">
+        SELECT
+            tu.username AS username,
+            tu.realname AS realname,
+            tu.last_login_time AS lastLoginTime,
+            tu.expired_time AS expiredTime,
+            (
+            SELECT
+                GROUP_CONCAT( tr.name SEPARATOR '、' )
+            FROM
+                t_user_role AS tur
+                LEFT JOIN t_role tr ON tr.id = tur.role_id
+            WHERE
+            FIND_IN_SET( tur.user_uuid, tu.uuid )) AS rulenames,
+            tog.name AS orgname,
+            tu.is_deleted AS disabled
+        FROM
+            t_user tu
+            LEFT JOIN t_org tog ON tu.org_uuid = tog.uuid
+        WHERE tu.uuid = #{uuid}
+    </select>
+</mapper>

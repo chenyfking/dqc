@@ -1,0 +1,107 @@
+// 多头借贷审查
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreMultiDict
+import com.beagledata.gaea.examples.hujin.PreMultiDict2
+import com.beagledata.gaea.examples.hujin.Reason
+
+rule "ruletree_yushai3_yushai1"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        PreMultiDict(mutualGoldLending == false) // 互金机构.有无互金机构贷款行为 等于 false
+    then
+        $PreMultiDict2.preMultiDict21 = "通过"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 通过
+end
+
+rule "ruletree_yushai3_yushai2"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == true // 互金机构.有无互金机构贷款行为 等于 true
+            && applyPlatformTimesIn24Month >= 15 // 互金机构.近24个月借款人申请平台次数 大于或等于 15
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "拒绝"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 拒绝
+        $Reason.describe = "此借款人近两年同类借贷平台申请次数过多"; // 赋值:不通过原因.描述 = 此借款人近两年同类借贷平台申请次数过多
+end
+
+rule "ruletree_yushai3_yushai3"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == true // 互金机构.有无互金机构贷款行为 等于 true
+            && applyPlatformTimesIn24Month < 15 // 互金机构.近24个月借款人申请平台次数 小于 15
+            && loanRejectedTimesIn12Month >= 1 // 互金机构.近12个月贷款被拒次数 大于或等于 1
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "拒绝"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 拒绝
+        $Reason.describe = "此借款人近一年内被多家同类借贷平台拒绝"; // 赋值:不通过原因.描述 = 此借款人近一年内被多家同类借贷平台拒绝
+end
+
+rule "ruletree_yushai3_yushai4"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == true // 互金机构.有无互金机构贷款行为 等于 true
+            && applyPlatformTimesIn24Month < 15 // 互金机构.近24个月借款人申请平台次数 小于 15
+            && loanRejectedTimesIn12Month < 1 // 互金机构.近12个月贷款被拒次数 小于 1
+            && loanUnitNum12Months >= 6 // 互金机构.近12个月内已借款机构数 大于或等于 6
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "人工审核"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 人工审核
+        $Reason.describe = "存在多头借贷行为"; // 赋值:不通过原因.描述 = 存在多头借贷行为
+end
+
+rule "ruletree_yushai3_yushai5"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == true // 互金机构.有无互金机构贷款行为 等于 true
+            && applyPlatformTimesIn24Month < 15 // 互金机构.近24个月借款人申请平台次数 小于 15
+            && loanRejectedTimesIn12Month < 1 // 互金机构.近12个月贷款被拒次数 小于 1
+            && loanUnitNum12Months < 6 // 互金机构.近12个月内已借款机构数 小于 6
+            && newLoanUnitNum6Months >= 1// 互金机构.近6个月新增借贷机构数 大于或等于 1
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "拒绝"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 拒绝
+        $Reason.describe = "存在以贷养贷嫌疑"; // 赋值:不通过原因.描述 = 存在以贷养贷嫌疑
+end
+
+rule "ruletree_yushai3_yushai6"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == true // 互金机构.有无互金机构贷款行为 等于 true
+            && applyPlatformTimesIn24Month < 15 // 互金机构.近24个月借款人申请平台次数 小于 15
+            && loanRejectedTimesIn12Month < 1 // 互金机构.近12个月贷款被拒次数 小于 1
+            && loanUnitNum12Months < 6 // 互金机构.近12个月内已借款机构数 小于 6
+            && newLoanUnitNum6Months < 1// 互金机构.近6个月新增借贷机构数 小于 1
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "人工审核"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 人工审核
+        $Reason.describe = "存在多头借贷行为"; // 赋值:不通过原因.描述 = 存在多头借贷行为
+end
+
+rule "ruletree_yushai3_yushai7"
+    when
+        $PreMultiDict : PreMultiDict()
+        $PreMultiDict2: PreMultiDict2()
+        $Reason : Reason()
+        PreMultiDict(
+            mutualGoldLending == "" // 互金机构.有无互金机构贷款行为 为空
+        )
+    then
+        $PreMultiDict2.preMultiDict21 = "人工审核"; // 赋值:多头信贷审查结果.多头借贷一审结果 = 人工审核
+        $Reason.describe = "此借款人存在隐瞒互金机构借贷嫌疑"; // 赋值:不通过原因.描述 = 此借款人存在隐瞒互金机构借贷嫌疑
+end

@@ -1,0 +1,20 @@
+// 信用历史名单匹配
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreCredit
+
+dialect "mvel"
+
+rule "rule"
+    when
+        $PreCredit : PreCredit()
+        $PreCredit2 : PreCredit2()
+        PreCredit(
+            idCardOverdueRepaymentList == true //信用历史.借款人身份证命中信贷逾期后还款名单 等于 true
+            || phoneOverdueListInTwoYears == true // 信用历史.借款人手机号两年内命中信贷逾期名单 等于 true
+            || phoneHelpStudyOverdueList == true // 信用历史.借款人手机号命中助学贷款逾期名单 等于 true
+            || phoneOverdueListInTwoYears == true // 信用历史.借款人手机号两年内命中信贷逾期名单 等于 true
+        )
+    then
+        $PreCredit2.preCredit21 = "人工审核"; // 赋值:信用历史审查结果.信用历史一审结果 = 人工审核
+end

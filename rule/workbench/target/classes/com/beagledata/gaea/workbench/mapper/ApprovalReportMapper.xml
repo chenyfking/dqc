@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.ApprovalReportMapper">
+    <resultMap id="baseResultMap" type="ApprovalReport">
+        <id property="id" column="id" />
+        <result property="createTime" column="create_time" />
+        <result property="ruleUuid" column="rule_uuid" />
+        <result property="ruleName" column="rule_name" />
+        <result property="ownerOrgUuid" column="owner_org_uuid" />
+        <result property="ownerOrgName" column="owner_org_name" />
+        <result property="ownerUserName" column="owner_user_name" />
+        <result property="reqCount" column="req_count" />
+        <result property="reqPassCount" column="req_pass_count" />
+        <result property="statDate" column="stat_date" />
+        <result property="reqPassCountRatio" column="reqPassCountRatio" />
+        <result property="endDate" column="endDate" />
+        <result property="startDate" column="startDate" />
+    </resultMap>
+
+    <select id="selectApprovalReportDate" resultMap="baseResultMap">
+        SELECT
+        MAX(t1.stat_date) endDate, MIN(t1.stat_date) startDate
+        FROM
+        t_approval_report t1
+        WHERE
+        1 = 1
+        <if test="isAdmin == false">
+            AND t1.owner_org_uuid = (SELECT t4.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t4 WHERE t4.uuid = #{userUuid})
+        </if>
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t1.owner_org_name LIKE #{reportSearchVO.keywords}
+            OR t1.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t1.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectApprovalReport" resultMap="baseResultMap">
+        SELECT
+            t.rule_uuid ,
+            t.rule_name,
+            t.owner_org_name,
+            t.owner_user_name,
+            g.req_count,
+            g.reqPassCountRatio
+        FROM
+            (
+            SELECT
+            rule_uuid,
+            SUM( req_count ) req_count,
+            ROUND( SUM( req_pass_count )/ SUM( req_count )* 100, 2 ) AS reqPassCountRatio
+            FROM t_approval_report
+            GROUP BY rule_uuid) g,
+            (SELECT
+            rule_uuid,
+            rule_name,
+            owner_org_name,
+            owner_user_name
+            FROM t_approval_report t1 WHERE stat_date IN ( SELECT MAX( stat_date ) FROM t_approval_report WHERE rule_uuid = t1.rule_uuid ) ) t
+        WHERE
+        g.rule_uuid = t.rule_uuid
+        <if test="isAdmin == false">
+            AND t.owner_org_uuid = (SELECT t4.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t4 WHERE t4.uuid = #{userUuid})
+        </if>
+
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t.owner_org_name LIKE #{reportSearchVO.keywords}
+            OR t.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+
+        <if test="reportSearchVO.startDate != null and reportSearchVO.startDate != ''">
+            <![CDATA[AND t.stat_date >= #{reportSearchVO.startDate AND t.stat_date <= #{reportSearchVO.startDate}]]>
+        </if>
+
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="countTotal" resultType="Integer">
+        SELECT COUNT(1) FROM
+        (SELECT
+        t1.rule_uuid
+        FROM
+        t_approval_report t1
+        WHERE
+        1 = 1
+        <if test="isAdmin == false">
+            AND t1.owner org uuid = (SELECT t4.org uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t4 WHERE  t4.uuid = #{userUuid})
+        </if>
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t1.owner_org_name LIKE #{reportSearchVO.keywords}
+            OR t1.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t1.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+        <if test="reportSearchVO.startDate != null and reportSearchVO.startDate != ''">
+            <![CDATA[AND t1.stat_date >= #{reportSearchVO.startDate AND t1.stat_date <= #{reportSearchVO.startDate}]]>
+        </if>
+        GROUP BY
+        t1.rule_uuid
+        ) a
+    </select>
+
+    <!-- 获取最新日期 -->
+    <select id="getLeastDate" resultType="java.util.Date">
+        SELECT stat_date FROM t_approval_report ORDER BY stat_date DESC LIMIT 1
+    </select>
+
+    <!-- 预统计 -->
+    <select id="preStat"  resultMap="baseResultMap">
+        SELECT
+            DATE_FROMAT(tdl.create_time, '%Y-%m-%d') stat_date,
+            tdl.org_uuid owner_org_uuid,
+            tdl.user_uuid owner_uesr_uuid,
+            tdl.micro_uuid rule_uuid,
+            tdl.org_name owner_org_name,
+            tdl.user_name owner_user_name,
+            COUNT(tdl.id) req_pass_count
+        FROM
+            t_decision_log_${logTableMonth} tdl LEFT JOIN t_decision_log_res_${logTableMonth} tdle on tdl.uuid = tdle.uuid
+        WHERE
+            tdl.create_time between #{startDate} AND #{endDate} AND tdle.is_pass in (0,1) AND is_effective = 1
+        GROUP BY
+            owner_org_uuid,
+            owner_user_uuid,
+            rule_uuid,
+            stat_date
+    </select>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_approval_report (create_time, rule_uuid, rule_name, owner_org_uuid, owner_org_name, owner_user_uuid, owner_user_name, req_count, req_pass_count, stat_date)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (NOW(), #{item.ruleUuid}, #{item.ruleName}, #{item.ownerOrgUuid}, #{item.ownerOrgName}, #{item.ownerUserUuid}, #{item.ownerUserName}, #{item.reqCount}, #{item.reqPassCount}, #{item.statDate})
+        </foreach>
+    </insert>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO
+            t_approval_report (create_time, rule_uuid, rule_name, owner_org_uuid, owner_org_name, owner_user_uuid, owner_user_name, req_count, req_pass_count, stat_date)
+        VALUES
+            (NOW(), #{ruleUuid}, #{ruleName}, #{ownerOrgUuid}, #{ownerOrgName}, #{ownerUserUuid}, #{ownerUserName}, #{reqCount}, #{reqPassCount}, #{statDate})
+    </insert>
+</mapper>

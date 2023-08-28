@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.ThirdApiDefinitionMapper">
+    <resultMap id="thirdApiDefinitionResultMap" type="ThirdApiDefinition">
+        <id property="id" column="id" />
+        <result property="uuid" column="uuid" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="name" column="name" />
+        <result property="url" column="url" />
+        <result property="method" column="method" />
+        <result property="requestContentType" column="req_content_type" />
+        <result property="headersJson" column="headers_json" />
+        <result property="responseJsonPath" column="res_json_path" />
+        <association property="creator" javaType="User" resultMap="userResultMap"/>
+    </resultMap>
+
+    <resultMap id="userResultMap" type="User">
+        <result property="uuid" column="creator_uuid"/>
+        <result property="username" column="username"/>
+        <result property="realname" column="realname"/>
+    </resultMap>
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO t_thirdapi_definition (uuid, create_time, name, url, method, req_content_type, headers_json, res_json_path, creator_uuid)
+        VALUES (#{uuid}, NOW(), #{name}, #{url}, #{method}, #{requestContentType}, #{headersJson}, #{responseJsonPath}, #{creator.uuid})
+    </insert>
+
+    <select id="selectAll" resultMap="thirdApiDefinitionResultMap">
+        SELECT
+            t1.id, t1.uuid, t1.create_time, t1.update_time, t1.name, t1.url, t1.method, t1.headers_json, t2.realname,
+            t1.req_content_type, t1.res_json_path
+        FROM t_thirdapi_definition t1 LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t2 ON t1.creator_uuid = t2.uuid
+        WHERE !t1.is_deleted
+    </select>
+
+    <update id="update">
+        UPDATE t_thirdapi_definition
+        <set>
+            update_time = NOW()
+            <if test="name != null and name != ''">
+                , name = #{name}
+            </if>
+            <if test="url != null and url != ''">
+                , url = #{url}
+            </if>
+            <if test="method != null">
+                , method = #{method}
+            </if>
+            <if test="requestContentType != null">
+                , req_content_type = #{requestContentType}
+            </if>
+            <if test="headersJson != null and headersJson != ''">
+                , headers_json = #{headersJson}
+            </if>
+            <if test="responseJsonPath != null and responseJsonPath != ''">
+                , res_json_path = #{responseJsonPath}
+            </if>
+        </set>
+        WHERE uuid = #{uuid}
+    </update>
+
+    <update id="delete">
+        UPDATE t_thirdapi_definition
+        SET update_time = NOW(), is_deleted = true, delete_version = id
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectForModeling" resultMap="thirdApiDefinitionResultMap">
+        SELECT uuid, name FROM t_thirdapi_definition WHERE !is_deleted
+    </select>
+
+    <select id="selectByUuid" resultMap="thirdApiDefinitionResultMap">
+        SELECT id, uuid, url, method, headers_json, req_content_type, res_json_path
+        FROM t_thirdapi_definition
+        WHERE uuid = #{uuid} AND !is_deleted
+    </select>
+
+    <select id="selectUuidByName" resultMap="thirdApiDefinitionResultMap">
+        SELECT uuid, url, method, headers_json, req_content_type, res_json_path
+        FROM t_thirdapi_definition
+        WHERE name = #{name}
+    </select>
+
+    <update id="updateOnUploadBaseline">
+        UPDATE t_thirdapi_definition
+        SET name = #{name}, url = #{url}, method = #{method}, headers_json = #{headersJson}, res_json_path = #{resJsonPath},
+        req_content_type = #{reqContentType}, is_deleted = false , delete_version = 0
+        WHERE
+            uuid = #{uuid}
+    </update>
+
+    <select id="selectOnUploadBaseline" resultMap="thirdApiDefinitionResultMap">
+        SELECT *
+        FROM t_thirdapi_definition
+        WHERE uuid = #{uuid}
+    </select>
+</mapper>

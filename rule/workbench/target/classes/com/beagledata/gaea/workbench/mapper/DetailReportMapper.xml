@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.DetailReportMapper">
+    <resultMap id="baseResultMap" type="DetailReport">
+        <id property="id" column="id" />
+        <result property="createTime" column="create_time" />
+        <result property="ruleUuid" column="rule_uuid" />
+        <result property="ruleName" column="rule_name" />
+        <result property="ownerOrgUuid" column="owner_org_uuid" />
+        <result property="ownerOrgName" column="owner_org_name" />
+        <result property="ownerUserUuid" column="owner_user_uuid" />
+        <result property="ownerUserName" column="owner_user_name" />
+        <result property="reqCount" column="req_count" />
+        <result property="batchReqCount" column="batch_req_count" />
+        <result property="batchReqSussessCount" column="online_req_succss_count" />
+        <result property="onlineReqCount" column="online_req_count" />
+        <result property="onlineReqSuccessCount" column="online_req_success_count" />
+        <result property="statDate" column="stat_date" />
+        <result property="onlineReqSuccessRatio" column="onlineReqSuccessRatio" />
+        <result property="batchReqSuccessRatio" column="batchReqSuccessRatio" />
+    </resultMap>
+
+    <select id="selectDetailReportDate" resultMap="baseResultMap">
+        SELECT
+            MAX(t1.stat_date) endDate, MIN(t1.stat_date) startDate
+        FROM
+            t_detail_report t1
+        WHERE
+            1 = 1
+        <if test="isAdmin == false">
+            AND t1.owner_org_uuid = (SELECT t4.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" />) t4.WHERE t4.uuid = #{userUuid}
+        </if>
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t1.owner_org_uuid LIKE #{reportSearchVO.keywords}
+            OR t1.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t1.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectDetailReport" resultMap="baseResultMap">
+        SELECT
+        g.rule_uuid,
+        g.req_count,
+        t.rule_name,
+        t.owner_user_name,
+        t.owner_org_name,
+        g.batch_req_count,
+        g.online_req_conut,
+        g.onlineReqSuccessRatio,
+        g.batchReqSuccessRatio
+        FROM
+            (
+                SELECT
+                    rule_uuid,
+                    SUM( req_count ) AS req_count,
+                    SUM( batch_req_count ) batch_req_count,
+                    SUM( online_req_count ) online_req_conut,
+                    ROUND( SUM( online_req_success_count )/ SUM( online_req_count )* 100, 2 ) AS onlineReqSuccessRatio,
+                    ROUND( SUM( batch_req_success_count )/ SUM( batch_req_count )* 100, 2 ) AS batchReqSuccessRatio
+                FROM t_detail_report
+                GROUP BY rule_uuid ) g,
+            (
+                SELECT rule_uuid, owner_user_name, owner_org_name, rule_name
+                FROM t_detail_report t1
+                WHERE stat_date IN (
+                    SELECT MAX( stat_date )
+                    FROM t_detail_report
+                    WHERE rule_uuid = t1.rule_uuid
+                )
+            ) t
+        WHERE
+        g.rule_uuid = t.rule_uuid
+        <if test="isAdmin == false">
+            AND g.owner_org_uuid = (SELECT t4.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" />) t4.WHERE t4.uuid = #{userUuid}
+        </if>
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t.owner_org_uuid LIKE #{reportSearchVO.keywords}
+            OR t.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+
+        <if test="reportSearchVO.startDate != null and reportSearchVO.startDate != ''">
+            <![CDATA[ AND t.stat_date >= #{reportSearchVO.startDate} AND t.stat_date <= #{reportSearchVO.endDate} ]]>
+        </if>
+
+        <if test="start != null and end != null">
+            LIMIT #{start}, #{end}
+        </if>
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="countTotal" resultType="Integer">
+        SELECT COUNT(1)
+        FROM
+        (SELECT t1.rule_uuid
+        FROM
+            t_detail_report t1
+        WHERE
+            1 = 1
+        <if test="isAdmin == false">
+            AND t1.owner_org_uuid = (SELECT t4.org_uuid FROM <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t4 WHERE t4.uuid = #{userUuid} )
+        </if>
+        <if test="reportSearchVO.keywords != null and reportSearchVO.keywords != ''">
+            AND (t1.owner_org_uuid LIKE #{reportSearchVO.keywords}
+            OR t1.owner_user_name LIKE #{reportSearchVO.keywords}
+            OR t1.rule_name LIKE #{reportSearchVO.keywords})
+        </if>
+        <if test="reportSearchVO.startDate != null and reportSearchVO.startDate != ''">
+            <![CDATA[ AND t1.stat_date >= #{reportSearchVO.startDate} AND t1.stat_date <= #{reportSearchVO.endDate} ]]>
+        </if>
+        GROUP BY
+        t1.rule_uuid)a
+    </select>
+
+    <!-- 获取最新日期 -->
+    <select id="getLeastDate" resultType="java.util.Date">
+        SELECT stat_date FROM t_detail_report ORDER BY stat_Date desc LIMIT 1
+    </select>
+
+    <!-- 预统计 -->
+    <select id="preStat" resultMap="baseResultMap">
+        SELECT
+            DATE_FORMAT(create_time, '%Y-%m-%d') stat_date,
+            org_uuid owner_org_uuid,
+            user_uuid owner_user_uuid,
+            micro_uuid rule_uuid,
+            org_name owner_org_name,
+            user_name owner_user_name,
+            COUNT(*) req_count,
+            SUM(IF(req_type = 0, 1, 0)) online_req_count,
+            SUM(IF(req_type = 1, 1, 0)) batch_req_count,
+            SUM(IF(req_type = 0 AND state = 1, 1, 0)) batch_req_success_count,
+            SUM(IF(req_type = 1 AND state = 1, 1, 0)) batch_req_success_count
+        FROM
+            t_decosopm_log_${logTableMonth}
+        WHERE
+            create_time between #{startDate} AND #{endDate}
+        GROUP BY
+            owner_org_uuid,
+            owner_user_uuid,
+            rule_uuid,
+            stat_date
+    </select>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_detail_report (create_time, rule_uuid, rule_name, owner_org_uuid,
+         owner_org_name, owner_user_uuid, owner_user_name,
+          req_count, batch_req_count, batch_req_success_count,online_req_count,
+          online_req_success_count, stat_date)
+        VALUES
+        <foreach collection="list">
+            (NOW(), #{item.ruleUuid}, #{item.ruleName}, #{item.ownerOrgUuid},
+             #{item.ownerOrgName}, #{item.ownerUserUuid}, #{item.ownerUserName},
+             #{item.reqCount}, #{item.batchReqCount}, #{item.batchReqSuccessCount}, #{item.onlineReqCount},
+             #{item.onlineReqSuccessCount}, #{item.statDate})
+        </foreach>
+    </insert>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_detail_report (create_time, rule_uuid, rule_name,
+            owner_org_uuid,
+            owner_org_name, owner_user_uuid, owner_user_name,
+            req_count, batch_req_count, batch_req_success_count, online_req_count,
+            online_req_success_count, stat_date)
+        VALUES
+            (NOW(), #{ruleUuid}, #{ruleName}, #{ownerOrgUuid},
+            #{ownerOrgName}, #{item.ownerUserUuid}, #{ownerUserName},
+            #{reqCount}, #{batchReqCount}, #{batchReqSuccessCount},
+            #{onlineReqCount}, #{onlineReqSuccessCount}, #{statDate})
+    </insert>
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.MicroRelationMapper">
+    <resultMap id="prjAndPackageNameMap" type="KnowledgePackage">
+        <result property="name" column="name" />
+        <result property="description" column="description" />
+    </resultMap>
+
+    <update id="batchInsertOrUpdateModel">
+        INSERT INTO t_micro_model (micro_uuid, model_uuid)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.microUuid}, #{item.modelUuid})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        <foreach collection="list" item="item" separator=",">
+            micro_uuid = #{item.microUuid}, model_uuid = #{item.modelUuid}
+        </foreach>
+    </update>
+
+    <delete id="deleteModels">
+        DELETE FROM t_micro_model WHERE micro_uuid = #{microUuid}
+    </delete>
+
+    <!--<update id="addClientMicro">
+        insert into t_client_micro (client_uuid, micro_uuid, creator_uuid, create_time)
+        values (#{clientUuid}, #{microUuid}, #{creatorUuid}, NOW())
+        ON DUPLICATE KEY UPDATE create_time = NOW()
+    </update>-->
+
+    <select id="selectPrjAndPackageName" resultMap="prjAndPackageNameMap">
+        SELECT t1.name, t2.name AS description FROM t_knowledge_package t1
+        LEFT JOIN t_project t2 ON t2.uuid = t1.project_uuid
+        WHERE t1.uuid = #{packageUuid}
+    </select>
+
+    <insert id="insertBatchMicroClientRoute">
+        INSERT t_micro_route (client_uuid, micro_uuid, create_time)
+        VALUES
+        <foreach collection="param1.clients" item="item" separator=",">
+            (#{item.uuid}, #{param1.uuid}, NOW())
+        </foreach>;
+    </insert>
+
+    <insert id="insertOrUpdateMicroClientRoute">
+        INSERT t_micro_route (client_uuid, micro_uuid, create_time)
+        VALUE (#{clientUuid}, #{microUuid}, NOW())
+        ON DUPLICATE KEY UPDATE create_time = NOW()
+    </insert>
+
+    <delete id="deleteByMicroUuid">
+        DELETE FROM t_micro_route WHERE micro_uuid = #{microUuid}
+    </delete>
+
+    <delete id="deleteByMicroAndClient">
+        DELETE FROM t_micro_route WHERE micro_uuid = #{microUuid} and client_uuid = #{clientUuid}
+    </delete>
+
+    <select id="selectEffectiveCountByMicroUuid" resultType="java.lang.Integer">
+        SELECT count(1) FROM t_micro_route WHERE micro_uuid = #{microUuid}
+    </select>
+</mapper>

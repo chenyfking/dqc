@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.ReferMapper">
+    <resultMap id="baseResultMap" type="DeploymentReport">
+        <id column="id" property="id"/>
+        <id column="subject_uuid" property="subjectUuid"/>
+        <id column="subject_type" property="subjectType"/>
+        <id column="subject_child" property="subjectChild"/>
+        <id column="subject_version" property="subjectVersion"/>
+        <id column="refer_uuid" property="referUuid"/>
+        <id column="refer_type" property="referType"/>
+        <id column="refer_version" property="referVersion"/>
+    </resultMap>
+
+    <resultMap id="referVOResultMap" type="com.beagledata.gaea.workbench.vo.AssetsReferenceVO">
+        <result column="refer_uuid" property="uuid"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="refer_version" property="versionNo"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="template" property="isTemplate"/>
+    </resultMap>
+    <resultMap id="aiModelResultMap" type="AiModel">
+        <id property="id" column="id"/>
+        <result property="uuid" column="uuid"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="modelName" column="model_name"/>
+        <result property="jarName" column="jar_name"/>
+        <result property="enable" column="is_enable"/>
+        <result property="params" column="params"/>
+    </resultMap>
+    <resultMap id="functionDefinitionResultMap" type="FunctionDefinition">
+        <id property="id" column="id"/>
+        <result property="uuid" column="uuid"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="name" column="name"/>
+        <result property="className" column="class_name"/>
+        <result property="methodsJson" column="methods_json"/>
+        <result property="content" column="content"/>
+        <result property="jarName" column="jar_name"/>
+        <result property="fileUuid" column="file_uuid"/>
+        <association property="creator" javaType="User" resultMap="userResultMap"/>
+    </resultMap>
+
+    <resultMap id="userResultMap" type="User">
+        <result column="uuid" jdbcType="CHAR" property="uuid"/>
+        <result column="realname" jdbcType="VARCHAR" property="realname"/>
+        <result column="username" jdbcType="VARCHAR" property="username"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_refer
+            (subject_uuid, subject_type, subject_child, subject_version, refer_uuid, refer_type, refer_version)
+        VALUES
+            (#{subjectUuid}, #{subjectType}, #{subjectChild}, #{subjectVersion}, #{referUuid}, #{referType}, #{referVersion})
+    </insert>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_refer
+        (subject_uuid, subject_type, subject_child, subject_version, refer_uuid, refer_type, refer_version)
+        VALUES
+        <foreach collection="collection" item="item" close="" index="index" open="" separator=",">
+            (#{item.subjectUuid}, #{item.subjectType}, #{item.subjectChild}, #{item.subjectVersion}, #{item.referUuid},
+            #{item.referType}, #{item.referVersion})
+        </foreach>
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM t_refer
+        WHERE 1 = 1
+        <if test="referType != '' and referType != null">
+            AND refer_type = #{referType}
+        </if>
+        <if test="subjectUuid != '' and subjectUuid != null">
+            AND subject_uuid = #{subjectUuid}
+        </if>
+        <if test="subjectType != '' and subjectType != null">
+            AND subject_type = #{subjectType}
+        </if>
+        <if test="subjectChild != '' and subjectChild != null">
+            AND subject_child = #{subjectChild}
+        </if>
+        <if test="subjectVersion != '' and subjectVersion != null">
+            <if test="subjectVersion == -1">
+                AND subject_version IS NULL
+            </if>
+            <if test="subjectVersion != -1">
+                AND subject_version = #{subjectVersion}
+            </if>
+        </if>
+
+        <if test="referUuid != '' and referUuid != null">
+            AND refer_uuid = #{referUuid}
+        </if>
+        <if test="referVersion != '' and referVersion != null">
+            <if test="referVersion == -1">
+                AND refer_version IS NULL
+            </if>
+            <if test="referVersion != -1">
+                AND refer_version = #{referVersion}
+            </if>
+        </if>
+    </delete>
+
+    <delete id="deleteFromRecycle">
+        DELETE
+        FROM
+        t_refer
+        WHERE
+        (
+        refer_type NOT IN ('tpl', 'testcase')
+        <if test="projectUuid != null and projectUuid != ''">
+            AND refer_uuid IN (
+            SELECT
+            assets_uuid
+            FROM
+            t_recycle_bin
+            WHERE
+            project_uuid = #{projectUuid}
+            AND SUBSTRING_INDEX(assets_type, '_', 1) NOT IN ('rpl', 'dir')
+            )
+        </if>
+        <if test="assetsUuids != null and assetsUuids.size() > 0">
+            AND refer_uuid IN
+            <foreach collection="assetsUuids" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        )
+        OR (
+        refer_type = 'tpl'
+        <if test="projectUuid != null and projectUuid != ''">
+            AND refer_uuid IN (
+            SELECT
+            assets_uuid
+            FROM
+            t_recycle_bin
+            WHERE
+            project_uuid = #{projectUuid}
+            AND SUBSTRING_INDEX(assets_type, '_', 1) = 'tpl'
+            )
+        </if>
+        <if test="tplUuids != null and tplUuids.size() > 0">
+            AND refer_uuid IN
+            <foreach collection="tplUuids" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        )
+    </delete>
+
+    <select id="countBySubjectUuid" resultType="Integer">
+        SELECT
+            COUNT(*)
+        FROM
+            t_refer
+        WHERE
+            subject_uuid = #{subjectUuid}
+    </select>
+    <select id="countBySubjectUuidAndSubjectVersion" resultType="Integer">
+        SELECT
+            COUNT(*)
+        FROM
+            t_refer
+        WHERE
+            subject_uuid = #{subjectUuid}  AND subject_version = #{subjectVersion}
+    </select>
+    <select id="countBySubjectUuidAndChild" resultType="Integer">
+        SELECT
+            COUNT(*)
+        FROM
+            t_refer
+        WHERE
+            subject_uuid = #{subjectUuid} AND subject_child = #{subjectChild}
+    </select>
+    <select id="selectSubjectUuidByReferUuid" resultType="String">
+        SELECT
+        subject_uuid
+        FROM
+        t_refer
+        WHERE
+        refer_uuid IN
+        <foreach collection="collection" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="selectReferBySubjectUuidAndVersion" resultMap="referVOResultMap">
+        SELECT DISTINCT
+        ta.name,
+        tr.refer_version,
+        tr.refer_uuid,
+        ta.type,
+        IF (tr.refer_version IS NULL OR refer_version = '', ta.description, tav.version_desc) description,
+        IF (tr.refer_version IS NULL OR refer_version = '', ta.create_time, tav.create_time) create_time,
+        FALSE template
+        FROM
+        t_refer tr
+        JOIN t_assets ta ON tr.refer_uuid = ta.uuid
+        LEFT JOIN t_assets_version tav ON tr.refer_uuid = tav.assets_uuid
+        AND tr.refer_version = tav.version_no
+        WHERE
+        tr.subject_uuid = #{subjectUuid}
+        <if test="subjectVersion != null">
+            AND tr.subject_version = #{subjectVersion}
+        </if>
+        AND tr.refer_type NOT IN ('tpl', 'pkg') AND tr.subject_type IS NULL
+        UNION
+        SELECT DISTINCT
+        tat.name,
+        tr.refer_version,
+        tr.refer_uuid,
+        tat.type,
+        "" description,
+        tat.create_time,
+        true template
+        FROM
+        t_refer tr
+        JOIN t_assets_template tat ON tr.refer_uuid = tat.uuid
+        WHERE
+        tr.subject_uuid = #{subjectUuid}
+        AND tr.refer_type = 'tpl' AND tr.subject_type IS NULL
+        UNION
+        SELECT DISTINCT
+        tkp.name,
+        tr.refer_version,
+        tr.refer_uuid,
+        "pkg" type,
+        tkp.description,
+        tkpb.create_time,
+        FALSE template
+        FROM
+        t_refer tr
+        JOIN t_knowledge_package tkp ON tr.refer_uuid = tkp.uuid
+        JOIN t_knowledge_package_baseline tkpb ON tkp.uuid = tkpb.package_uuid AND tr.refer_version = tkpb.version_no
+        WHERE
+        tr.subject_uuid = #{subjectUuid}
+        <if test="subjectVersion != null">
+            AND tr.subject_version = #{subjectVersion}
+        </if>
+        AND tr.refer_type = 'pkg'
+    </select>
+    <select id="selectAiModelByReferUuid" resultMap="aiModelResultMap">
+        SELECT t1.*
+        FROM t_aimodel t1 INNER JOIN t_refer t2 ON t1.uuid = t2.subject_uuid
+        WHERE
+        t2.refer_uuid IN
+        <foreach collection="collection" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND t2.subject_type = 'model' AND !t1.is_deleted
+    </select>
+
+    <select id="selectFunctionByReferUuids" resultMap="functionDefinitionResultMap">
+        SELECT t1.*
+        FROM t_function_definition t1 INNER JOIN t_refer t2 ON t1.name = t2.subject_uuid
+        WHERE
+        t2.refer_uuid IN
+        <foreach collection="collection" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND t2.subject_type = 'func' AND !t1.is_deleted
+    </select>
+</mapper>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="execution-server" />
+        <module name="common" />
+        <module name="examples" />
+        <module name="execution-core" />
+        <module name="batch" />
+        <module name="workbench" />
+        <module name="rule-engine" />
+        <module name="gateway" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>

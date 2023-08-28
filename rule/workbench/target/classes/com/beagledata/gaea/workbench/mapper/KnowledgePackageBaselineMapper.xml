@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.KnowledgePackageBaselineMapper">
+    <resultMap id="baseResultMap" type="com.beagledata.gaea.workbench.entity.KnowledgePackageBaseline">
+        <id property="id" column="id" />
+        <result property="uuid" column="uuid" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="packageUuid" column="package_uuid" />
+        <result property="versionNo" column="version_no" />
+        <result property="versionDesc" column="version_desc" />
+        <result column="state" property="state" />
+        <result property="auditReason" column="audit_reason" />
+        <association property="creator" javaType="User" resultMap="userResultMap" />
+    </resultMap>
+
+    <resultMap id="userResultMap" type="User">
+        <result property="realname" column="realname" />
+        <result property="uuid" column="uuid" />
+    </resultMap>
+
+     <resultMap id="assetsResultMap" type="com.beagledata.gaea.workbench.entity.Assets" >
+        <id column="id" property="id" jdbcType="INTEGER" />
+        <result column="uuid" property="uuid" jdbcType="CHAR" />
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+        <result column="name" property="name" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="type" property="type" jdbcType="VARCHAR" />
+        <result column="project_uuid" property="projectUuid" jdbcType="CHAR" />
+        <result column="content" property="content"/>
+        <result column="projectId" property="projectId" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <resultMap id="compareVo" type="com.beagledata.gaea.workbench.vo.BaselineCompareChildrenVO">
+        <result property="type" column="type" />
+        <result property="uuid" column="uuid" />
+        <result property="same" column="same" />
+        <result property="name" column="name" />
+        <result property="baselineV1" column="version1" />
+        <result property="baselineV2" column="version2" />
+    </resultMap>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_knowledge_package_baseline (uuid, create_time, package_uuid, creator_uuid, version_no,version_desc)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.uuid}, NOW(), #{item.packageUuid}, #{item.creator.uuid}, #{item.versionNo}, #{item.versionDesc})
+        </foreach>
+    </insert>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_knowledge_package_baseline (uuid, create_time, package_uuid, creator_uuid, version_no, state)
+        VALUES (
+        #{uuid}, NOW(), #{packageUuid}, #{creator.uuid},
+            <choose>
+                <when test="versionNo == null">
+                    (
+                        SELECT v FROM (
+                            SELECT IFNULL((SELECT version_no + 1 FROM t_knowledge_package_baseline WHERE package_uuid = #{packageUuid} ORDER BY id DESC LIMIT 1), 1) AS v
+                        ) AS t
+                    ),
+                </when>
+                <otherwise>
+                    #{versionNo},
+                </otherwise>
+            </choose>
+            #{state}
+        )
+    </insert>
+
+    <insert id="insertBaselineAssets">
+        INSERT INTO t_knowledge_package_assets (package_uuid, assets_uuid, create_time, assets_version, baseline_version)
+        VALUES
+        <foreach collection="array" item="item" index="index" separator=",">
+            (#{packageUuid}, #{item.assetsUuid}, NOW(), #{item.assetsVersion}, #{baselineVersion})
+        </foreach>
+    </insert>
+
+    <insert id="insertBaselineAssetsBatch">
+        INSERT INTO t_knowledge_package_assets (package_uuid, assets_uuid, create_time, assets_version, baseline_version)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.packageUuid}, #{item.assetsUuid}, NOW(), #{item.assetsVersion}, #{item.baselineVersion})
+        </foreach>
+    </insert>
+
+    <select id="selectBaselineVersionNoByPackageUuid" resultType="java.lang.String">
+        SELECT version_no FROM t_knowledge_package_baseline WHERE package_uuid = #{packageUuid} ORDER BY id DESC LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="baseResultMap">
+        SELECT id, uuid, package_uuid, version_no  FROM t_knowledge_package_baseline WHERE id = #{id}
+    </select>
+
+    <select id="selectByUuid" resultMap="baseResultMap">
+        SELECT id, uuid, package_uuid, version_no
+        FROM t_knowledge_package_baseline
+        WHERE uuid = #{uuid}
+    </select>
+
+    <update id="delete">
+        UPDATE t_knowledge_package_baseline
+        SET update_time = NOW(), is_deleted = TRUE, delete_version = id
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectListByPage" resultMap="baseResultMap">
+        SELECT t1.uuid, t1.version_no, t1.create_time, t1.state, t2.realname, t1.audit_reason
+        FROM t_knowledge_package_baseline t1, t_user t2
+        WHERE !t1.is_deleted AND t1.package_uuid = #{packageUuid} AND t1.creator_uuid = t2.uuid
+        ORDER BY t1.version_no DESC
+        LIMIT #{start}, #{limit}
+    </select>
+
+    <select id="selectCountByPackage" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM t_knowledge_package_baseline t1, t_user t2
+        WHERE !t1.is_deleted AND t1.package_uuid = #{packageUuid} AND t1.creator_uuid = t2.uuid
+    </select>
+
+    <update id="updateState">
+        UPDATE t_knowledge_package_baseline SET state = #{state} WHERE package_uuid = #{packageUuid} AND version_no = #{baselineVersion}
+    </update>
+
+    <update id="updateStateByNewState">
+        UPDATE t_knowledge_package_baseline SET state = #{newState} WHERE package_uuid = #{packageUuid} AND state = #{oldState}
+    </update>
+
+    <update id="online">
+        UPDATE t_knowledge_package_baseline SET state = 2 WHERE package_uuid = #{packageUuid} AND state = 3;
+        UPDATE t_knowledge_package_baseline SET state = 3 WHERE package_uuid = #{packageUuid} AND version_no = #{baselineVersion}
+    </update>
+
+    <select id="selectListMicroBaselineByPage" resultMap="baseResultMap">
+        SELECT t1.uuid, t1.version_no, t1.create_time, t1.state, t2.realname, t1.audit_reason, t1.package_uuid
+        FROM t_knowledge_package_baseline t1, <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t2
+        WHERE !t1.is_deleted AND t1.package_uuid = #{packageUuid} AND t1.creator_uuid = t2.uuid AND t1.state in (2,3)
+        ORDER BY t1.version_no DESC
+        <if test="start != null and limit != null">
+            LIMIT #{start}, #{limit}
+        </if>
+    </select>
+
+    <select id="selectCountMicroBaselineByPackage" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM t_knowledge_package_baseline t1, <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t2
+        WHERE !t1.is_deleted AND t1.package_uuid = #{packageUuid} AND t1.creator_uuid = t2.uuid AND t1.state in (2,3)
+    </select>
+
+    <insert id="insertAuditRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_audit_record (create_time, state, audit_reason, auditor_uuid, baseline_uuid)
+        VALUES (NOW(), #{state}, #{auditReason}, #{auditorUuid}, #{baselineUuid})
+    </insert>
+
+    <update id="updateAuditState">
+        UPDATE t_knowledge_package_baseline
+        SET update_time = NOW(), audit_reason = #{auditReason}, state = #{state}
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectCompare" resultMap="compareVo">
+        SELECT
+            V1.uuid,
+            V1.type,
+            V1.NAME,
+            V1.version_no version1,
+            V2.version_no version2,
+            IF(V1.version_no = V2.version_no, 1, 0) same
+        FROM
+            (SELECT
+            ta.uuid,
+            ta.name,
+            ta.type,
+            tav.version_no
+        FROM
+            t_knowledge_package_assets tk
+            INNER JOIN t_assets_version tav ON tk.assets_uuid = tav.assets_uuid
+            AND tk.assets_version = tav.version_no
+            INNER JOIN t_assets ta ON tk.assets_uuid = ta.uuid
+        WHERE
+            tk.package_uuid = #{packageUuid} AND tk.baseline_version = #{baselineV1} AND !tav.is_deleted AND !ta.is_deleted) V1
+            LEFT JOIN (SELECT
+            ta.uuid,
+            ta.name,
+            ta.type,
+            tav.version_no
+        FROM
+            t_knowledge_package_assets tk
+            INNER JOIN t_assets_version tav ON tk.assets_uuid = tav.assets_uuid
+            AND tk.assets_version = tav.version_no
+            INNER JOIN t_assets ta ON tk.assets_uuid = ta.uuid
+        WHERE
+            tk.package_uuid = #{packageUuid} AND tk.baseline_version = #{baselineV2} AND !tav.is_deleted AND !ta.is_deleted) V2 ON V1.uuid = V2.uuid
+        UNION
+        SELECT
+            V2.uuid,
+            V2.type,
+            V2.NAME,
+            V1.version_no version1,
+            V2.version_no version2,
+            IF(V1.version_no=V2.version_no,1,0) same
+        FROM
+           (SELECT
+           ta.uuid,
+           ta.name,
+           ta.type,
+           tav.version_no
+        FROM
+            t_knowledge_package_assets tk
+            INNER JOIN t_assets_version tav ON tk.assets_uuid = tav.assets_uuid
+            AND tk.assets_version = tav.version_no
+            INNER JOIN t_assets ta ON tk.assets_uuid = ta.uuid
+        WHERE
+            tk.package_uuid = #{packageUuid} AND tk.baseline_version = #{baselineV1} AND !tav.is_deleted AND !ta.is_deleted) V1
+            RIGHT JOIN (SELECT
+            ta.uuid,
+            ta.name,
+            ta.type,
+            tav.version_no
+        FROM
+            t_knowledge_package_assets tk
+            INNER JOIN t_assets_version tav ON tk.assets_uuid = tav.assets_uuid
+            AND tk.assets_version = tav.version_no
+            INNER JOIN t_assets ta ON tk.assets_uuid = ta.uuid
+        WHERE
+            tk.package_uuid = #{packageUuid} AND tk.baseline_version = #{baselineV2} AND !tav.is_deleted AND !ta.is_deleted) V2 ON V1.uuid = V2.uuid;
+    </select>
+
+    <select id="selectListMicroBaselineBystate" resultMap="baseResultMap">
+        SELECT  t1.uuid, t1.version_no, t1.create_time, t1.state, t2.realname, t1.audit_reason, t1.package_uuid
+        FROM t_knowledge_package_baseline t1, <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t2
+        WHERE !t1.is_deleted AND t1.package_uuid = #{packageUuid} AND t1.creator_uuid = t2.uuid
+        <if test="state != null and state != ''">
+            AND t1.state = #{state}
+        </if>
+        ORDER BY t1.id DESC
+    </select>
+
+    <select id="selectBaselineByPackageUuid" resultMap="baseResultMap">
+        SELECT  t1.audit_reason, t1.creator_uuid, t1.package_uuid, t1.state, t1.version_desc, t1.version_no
+        FROM t_knowledge_package_baseline t1, t_knowledge_package t2
+        WHERE t2.project_uuid = #{packageUuid} AND !t1.is_deleted AND t1.package_uuid = t2.uuid
+    </select>
+
+    <select id="selectByPackageUuidAndBaselineVersion" resultMap="baseResultMap">
+        SELECT * FROM t_knowledge_package_baseline
+        SET is_deleted = false , delete_version = 0
+        WHERE
+            uuid = #{uuid}
+    </select>
+
+    <select id="selectOnUploadBaseline" resultMap="baseResultMap">
+        SELECT *
+        FROM t_knowledage_package_baseline
+        WHERE uuid = #{uuid}
+    </select>
+
+    <update id="updateOnUploadBaseline">
+        UPDATE t_knowledge_package_baseline
+    </update>
+
+    <select id="selectByMicro" resultMap="baseResultMap">
+        SELECT t1.package_uuid, t1.version_no
+        FROM t_knowledge_package_baseline t1, t_knowledge_package t2
+        WHERE t1.package_uuid = t2.uuid AND t2.micro_uuid = #{microUuid} AND t1.state in (2, 3) AND !t1.is_deleted
+        ORDER BY t1.version_no DESC
+    </select>
+</mapper>

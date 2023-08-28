@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.FunctionDefinitionMapper">
+    <resultMap id="functionDefinitionResultMap" type="FunctionDefinition">
+        <id property="id" column="id" />
+        <result property="uuid" column="uuid" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="name" column="name" />
+        <result property="className" column="class_name" />
+        <result property="methodsJson" column="methods_json" />
+        <result property="content" column="content" />
+        <result property="jarName" column="jar_name" />
+        <result property="fileUuid" column="file_uuid" />
+        <association property="creator" javaType="User" resultMap="userResultMap"/>
+    </resultMap>
+
+    <resultMap id="userResultMap" type="User">
+        <result property="uuid" column="creator_uuid"/>
+        <result property="username" column="username"/>
+        <result property="realname" column="realname"/>
+    </resultMap>
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO t_function_definition (uuid, create_time, name, class_name, content, creator_uuid, jar_name, file_uuid, methods_json)
+        VALUES (#{uuid}, NOW(), #{name}, #{className}, #{content}, #{creator.uuid}, #{jarName}, #{fileUuid}, #{methodsJson})
+    </insert>
+
+    <select id="selectAll" resultMap="functionDefinitionResultMap">
+        SELECT t1.id, t1.uuid, t1.create_time, t1.update_time, t1.name, t1.methods_json, t1.jar_name, t2.realname
+        FROM t_function_definition t1 LEFT JOIN <include refid="com.beagledata.gaea.workbench.mapper.UserMapper.union_users" /> t2 ON t1.creator_uuid = t2.uuid
+        WHERE !t1.is_deleted
+    </select>
+
+    <select id="selectByNameOrClassName" resultMap="functionDefinitionResultMap">
+        SELECT *
+        FROM t_function_definition
+        WHERE !is_deleted AND ( name = #{name} OR class_name = #{className})
+    </select>
+
+    <select id="selectByName" resultMap="functionDefinitionResultMap">
+        SELECT id, class_name, methods_json FROM t_function_definition WHERE name = #{name} AND !is_deleted
+    </select>
+
+    <select id="selectByClassName" resultMap="functionDefinitionResultMap">
+        SELECT id, uuid, name, class_name, methods_json, content, file_uuid
+        FROM t_function_definition
+        WHERE class_name = #{className} AND !is_deleted
+    </select>
+
+    <update id="delete">
+        UPDATE t_function_definition
+        SET update_time = NOW(), is_deleted = true, delete_version = id
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectByUuid" resultMap="functionDefinitionResultMap">
+        SELECT jar_name, file_uuid, content, name, class_name, methods_json
+        FROM t_function_definition
+        WHERE uuid = #{uuid} AND !is_deleted
+    </select>
+
+    <update id="update">
+        UPDATE t_function_definition
+        <set>
+            update_time = NOW()
+            <if test="methodsJson != null and methodsJson != ''">
+                ,methods_json = #{methodsJson}
+            </if>
+            <if test="content != null and content != ''">
+                ,content = #{content}
+            </if>
+            <if test="name != null and name != ''">
+                ,name = #{name}
+            </if>
+            <if test="className != null and className != ''">
+                ,class_name = #{className}
+            </if>
+        </set>
+        WHERE uuid = #{uuid}
+    </update>
+
+    <update id="updateOnUploadBaseline">
+        UPDATE t_function_definition
+        SET name = #{name}, methods_json = #{methodsJson}, is_deleted = false, delete_version = 0
+        WHERE
+            uuid = #{uuid}
+    </update>
+
+    <select id="selectOnUploadBaseline" resultMap="functionDefinitionResultMap">
+        SELECT *
+        FROM t_function_definition
+        WHERE uuid = #{uuid}
+    </select>
+</mapper>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.beagledata.gaea.workbench.mapper.AssetsTemplateMapper">
+    <resultMap id="BaseResultMap" type="AssetsTemplate">
+        <id column="id" property="id" />
+        <result column="uuid" property="uuid" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="name" property="name" />
+        <result column="content" property="content" />
+        <result column="type" property="type" />
+        <result column="project_uuid" property="projectUuid" />
+        <association property="creator" javaType="User" resultMap="userResultMap" />
+    </resultMap>
+
+    <resultMap id="userResultMap" type="User">
+        <result property="realname" column="user_realname" />
+        <result property="uuid" column="user_uuid" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        t1.id, t1.uuid, t1.create_time, t1.update_time, t1.name, t1.content, t1.type, t1.project_uuid
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_assets_template (create_time, uuid, project_uuid, name, content, type, creator_uuid)
+        VALUES (NOW(), #{uuid}, #{projectUuid}, #{name}, #{content}, #{type}, #{creator.uuid})
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO t_assets_template (create_time, uuid, project_uuid, name, content, type, creator_uuid)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (NOW(), #{item.uuid}, #{item.projectUuid}, #{item.name}, #{item.content}, #{item.type}, #{item.creator.uuid})
+        </foreach>
+    </insert>
+
+    <update id="updateContentByUuid">
+        UPDATE t_assets_template SET update_time = NOW(), content = #{content}
+        WHERE uuid = #{uuid} AND !is_deleted
+    </update>
+
+    <update id="delete">
+        UPDATE t_assets_template SET is_deleted = TRUE, update_time = NOW(), delete_version = id
+        WHERE uuid = #{uuid}
+    </update>
+
+    <select id="selectByUuid" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM
+        t_assets_template t1
+        WHERE t1.uuid = #{uuid} AND !t1.is_deleted
+    </select>
+
+    <select id="selectByProjectUuid" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM
+        t_assets_template t1
+        WHERE t1.project_uuid = #{projectUuid} AND !t1.is_deleted
+    </select>
+
+    <select id="selectByParams" resultMap="BaseResultMap">
+        SELECT
+          t1.id, t1.uuid, t1.create_time, t1.update_time, t1.name, t1.type, t1.project_uuid
+        FROM t_assets_template t1
+        WHERE
+          !t1.is_deleted
+          <if test="assetsTemplate != null">
+              <if test="assetsTemplate.projectUuid != null and assetsTemplate.projectUuid != ''">
+                  AND t1.project_uuid = #{assetsTemplate.projectUuid}
+              </if>
+              <if test="assetsTemplate.type != null and assetsTemplate.type != ''">
+                  AND t1.type = #{assetsTemplate.type}
+              </if>
+          </if>
+        ORDER BY t1.update_time DESC, t1.id DESC
+    </select>
+
+    <select id="getAssetsTreeNode" resultType="com.beagledata.gaea.workbench.vo.AssetsTreeNodeVO">
+        SELECT
+		    uuid,1 leaf,name label,CONCAT('tpl_',type) type
+	    FROM
+		    t_assets_template
+	    WHERE
+            ! is_deleted
+            <if test="projectUuid != null and projectUuid != ''">
+                AND project_uuid = #{projectUuid}
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+        ORDER BY
+         create_time ASC;
+    </select>
+
+    <select id="selectContentByUuids">
+        SELECT content
+        FROM t_assets_template
+        WHERE
+            uuid IN
+            <foreach collection="colletion" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+            AND !is_deleted
+    </select>
+</mapper>

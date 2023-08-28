@@ -1,0 +1,64 @@
+config:
+  data-home: ${DATA_HOME:D:\dev\workspace_gaea\gaea-decision\execution-server}
+  workbench:
+    base-url: ${WORKBENCH_BASE_URL:http://local-web:33005/gaea}
+  log:
+    save-per-rate: 1000
+    save-per-num: 100
+    save-thread-num: 1
+  tasks:
+    -
+      className: com.beagledata.gaea.executionserver.scheduled.CreateDecisionLogTableTask
+      cron: ${CREATE_DECISION_LOG_TABLE_CRON:0 0 1 1 * ?}
+    -
+      className: com.beagledata.gaea.executionserver.scheduled.FailDecisionLogWarehousingTask
+      cron: ${FAILED_DECISION_LOG_REINSERT_CRON:0 30 0/4 * * ?}
+
+server:
+  context-path: ${SERVER_CONTEXT_PATH:/}
+  port: ${SERVER_PORT:33006}
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  profiles:
+    active: ${ENV:dev}
+  datasource:
+    druid:
+      type: com.alibaba.druid.pool.DruidDataSource
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://${DATABASE_IP:192.168.100.19}:3306/${DATABASE_NAME:gaea}?allowMultiQueries=true&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+      username: ${DATABASE_USERNAME:gaea}
+      password: ${DATABASE_PASSWORD:gaea@skycloud123}
+      filters: false
+      connectionProperties: config.decrypt=false
+      initialSize: ${DATABASE_INITIAL_SIZE:10}
+      minIdle: ${DATABASE_MIN_IDLE:10}
+      maxActive: ${DATABASE_MAX_ACTIVE:100}
+      maxWait: ${DATABASE_MAX_WAIT:60000}
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      validationQuery: SELECT 1
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      poolPreparedStatements: false
+      maxPoolPreparedStatementPerConnectionSize: 20
+  http:
+    multipart:
+      maxFileSize: ${UPLOAD_MAX_FILE_SIZE:100Mb}
+      maxRequestSize: ${UPLOAD_MAX_REQUEST_SIZE:1000Mb}
+      location: ${config.data-home}/tmp
+
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.beagledata.gaea.executioncore.entity
+
+logging:
+  config: ${LOG_CONFIG:classpath:logback-spring.xml}
+logback:
+  loghome: ${LOG_HOME:logs}
+  maxhistory: ${LOG_MAXHISTORY:60}
+  maxsize: ${LOG_MAXSIZE:10MB}
+  level:
+    root: ${LOG_LEVEL:INFO}

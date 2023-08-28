@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.workbench.mapper.UpgradeMapper">
+
+    <resultMap id="assetsResultMap" type="com.beagledata.gaea.workbench.entity.Assets">
+        <id column="id" property="id" />
+        <result column="uuid" property="uuid" />
+        <result column="content" property="content" />
+        <result column="type" property="type" />
+    </resultMap>
+
+    <resultMap id="assetsVersionResultMap" type="com.beagledata.gaea.workbench.entity.AssetsVersion">
+        <id column="id" property="id" />
+        <result column="content" property="content" />
+        <result column="version_no" property="versionNo" />
+        <result column="version_desc" property="versionDes" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <insert id="createTables">
+        DROP TABLE IF EXISTS `t_approval_report`;
+        CREATE TABLE `t_approval_report`  (
+          `id` int(11) NOT NULL,
+          `create_time` datetime NOT NULL,
+          `rule_uuid` char(32) NOT NULL COMMENT '规则uuid(对应t_micro 的uuid)',
+          `rule_name` varchar(20) NOT NULL COMMENT '规则名称(对应t_micro 的name)',
+          `owner_org_uuid` varchar(32) NULL DEFAULT NULL COMMENT '归属机构uuid',
+          `owner_org_name` varchar(80) NULL DEFAULT NULL COMMENT '归属机构名称',
+          `owner_user_uuid` varchar(32) NULL DEFAULT NULL COMMENT '归属用户uuid',
+          `owner_user_name` varchar(60) NULL DEFAULT NULL COMMENT '归属用户名称',
+          `req_count` int(11) NOT NULL COMMENT '调用次数',
+          `req_pass_count` int(11) NOT NULL COMMENT '调用通过数',
+          `stat_date` date NOT NULL COMMENT '统计日期',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `uk_rule_date`(`rule_uuid`, `stat_date`) USING BTREE,
+          INDEX `idx_rule_uuid`(`rule_uuid`) USING BTREE,
+          INDEX `idx_owner_org_uuid`(`owner_org_uuid`) USING BTREE,
+          INDEX `idx_owner_user_uuid`(`owner_user_uuid`) USING BTREE,
+          INDEX `idx_stat_date`(`stat_date`) USING BTREE
+        ) ENGINE = InnoDB;
+
+        DROP TABLE IF EXISTS `t_audit_record`;
+        CREATE TABLE `t_audit_record`  (
+          `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'id',
+          `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+          `state` int(11) NULL DEFAULT NULL COMMENT '审核状态',
+          `audit_reason` varchar(100) NULL DEFAULT NULL COMMENT '审核理由',
+          `auditor_uuid` char(32) NULL DEFAULT NULL COMMENT '审核人uuid',
+          `baseline_uuid` char(32) NULL DEFAULT NULL COMMENT '知识包基线uuid',
+          PRIMARY KEY (`id`) USING BTREE
+        ) ENGINE = InnoDB  COMMENT = '审核记录表';
+
+        DROP TABLE IF EXISTS `t_deployment_report`;
+        CREATE TABLE `t_deployment_report`  (
+          `id` int(11) NOT NULL,
+          `create_time` datetime NOT NULL,
+          `deploy_uuid` varchar(32) NOT NULL COMMENT '生效上线uuid',
+          `pkg_baseline` int(11) NULL DEFAULT NULL COMMENT '基线版本',
+          `req_count` int(11) NOT NULL DEFAULT 0 COMMENT '调用次数',
+          `batch_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用次数',
+          `batch_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用成功次数',
+          `online_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用次数',
+          `online_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用成功次数',
+          `req_pass_count` int(11) NOT NULL DEFAULT 0 COMMENT '审批通过次数',
+          `stat_date` date NOT NULL COMMENT '统计日期',
+          PRIMARY KEY (`id`) USING BTREE,
+          INDEX `uk_deploy_stat`(`deploy_uuid`, `pkg_baseline`, `stat_date`) USING BTREE,
+          INDEX `idx_deploy`(`deploy_uuid`, `pkg_baseline`) USING BTREE,
+          INDEX `idx_stat_date`(`stat_date`) USING BTREE
+        ) ENGINE = InnoDB;
+
+        DROP TABLE IF EXISTS `t_detail_report`;
+        CREATE TABLE `t_detail_report`  (
+          `id` int(11) NOT NULL,
+          `create_time` datetime NOT NULL,
+          `rule_uuid` char(32) NOT NULL COMMENT '规则uuid(对应t_micro 的uuid)',
+          `rule_name` varchar(20) NOT NULL COMMENT '规则名称(对应t_micro 的name)',
+          `owner_org_uuid` varchar(32) NULL DEFAULT NULL COMMENT '归属机构uuid',
+          `owner_org_name` varchar(80) NULL DEFAULT NULL COMMENT '归属机构名称',
+          `owner_user_uuid` varchar(32) NULL DEFAULT  NULL COMMENT '归属用户uuid',
+          `owner_user_name` varchar(60) NULL DEFAULT  NULL COMMENT '归属用户名称',
+          `req_count` int(11) NOT NULL DEFAULT 0 COMMENT '调用次数',
+          `batch_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用次数',
+          `batch_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用成功次数',
+          `online_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用次数',
+          `online_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用成功次数',
+          `stat_date` date NOT NULL COMMENT '统计日期',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `uk_rule_date`(`rule_uuid`, `stat_date`) USING BTREE,
+          INDEX `idx_rule_uuid`(`rule_uuid`) USING BTREE,
+          INDEX `idx_owner_org_uuid`(`owner_org_uuid`) USING BTREE,
+          INDEX `idx_owner_user_uuid`(`owner_user_uuid`) USING BTREE,
+          INDEX `idx_stat_date`(`stat_date`) USING BTREE
+        ) ENGINE = InnoDB;
+
+        DROP TABLE IF EXISTS `t_micro_deployment`;
+        CREATE TABLE `t_micro_deployment`  (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `uuid` char(32) NOT NULL,
+          `create_time` datetime NOT NULL,
+          `update_time` datetime NULL DEFAULT NULL,
+          `micro_uuid` char(32) NULL DEFAULT NULL COMMENT '所属服务uuid',
+          `incoming_quantity` bigint(20) NULL DEFAULT NULL COMMENT '最大进件量',
+          `expired_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
+          `type` varchar(32) NULL DEFAULT NULL COMMENT '优化类型',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `uk_uuid`(`uuid`) USING BTREE
+        ) ENGINE = InnoDB  COMMENT = '微服务部署配置表';
+
+        DROP TABLE IF EXISTS `t_micro_deployment_model`;
+        CREATE TABLE `t_micro_deployment_model`  (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `package_uuid` char(32) NULL DEFAULT NULL COMMENT '知识包uuid',
+          `percent` int(32) NULL DEFAULT NULL COMMENT '冠军挑战者流量分配的比例',
+          `is_primary` tinyint(1) NULL DEFAULT NULL COMMENT '是否挑战者',
+          `version_no` int(11) NULL DEFAULT NULL COMMENT '基线版本号',
+          `micro_uuid` char(32) NULL DEFAULT NULL COMMENT '微服务模型uuid',
+          `micro_deployment_uuid` char(32) NULL DEFAULT NULL COMMENT '模型优化uuid',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `un_pkg_micro_vo_md`(`package_uuid`, `version_no`, `micro_uuid`, `micro_deployment_uuid`) USING BTREE
+        ) ENGINE = InnoDB  COMMENT = '微服务部署配置记录表';
+
+        DROP TABLE IF EXISTS `t_micro_route`;
+        CREATE TABLE `t_micro_route`  (
+          `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+          `create_time` datetime NOT NULL COMMENT '创建时间',
+          `client_uuid` char(32) NOT NULL COMMENT '客户端uuid(t_client的uuid)',
+          `micro_uuid` char(32) NOT NULL COMMENT '微服务uuid(t_micro的uuid)',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `uk_client_micro`(`client_uuid`, `micro_uuid`) USING BTREE
+        ) ENGINE = InnoDB  COMMENT = '微服务路由表';
+
+        DROP TABLE IF EXISTS `t_refer`;
+        CREATE TABLE `t_refer`  (
+          `subject_uuid` varchar(32) NULL DEFAULT NULL COMMENT '被引用资源uuid',
+          `subject_type` varchar(15) NULL DEFAULT NULL COMMENT '被引用资源类型',
+          `subject_child` varchar(50) NULL DEFAULT NULL COMMENT '被引用资源子集',
+          `subject_version` int(11) NULL DEFAULT NULL COMMENT '被引用资源版本',
+          `refer_uuid` varchar(32) NULL DEFAULT NULL COMMENT '引用资源uuid',
+          `refer_type` varchar(15) NULL DEFAULT NULL COMMENT '引用资源类型',
+          `refer_version` int(11) NULL DEFAULT NULL COMMENT '引用资源版本',
+          INDEX `idx_search`(`subject_uuid`, `subject_type`, `subject_child`, `subject_version`, `refer_uuid`, `refer_type`, `refer_version`) USING BTREE,
+          INDEX `idx_subject_uuid` (`subject_uuid`) USING BTREE,
+          INDEX `idx_subject` (`subject_uuid`,`subject_type`,`subject_child`,`subject_version`) USING BTREE,
+          INDEX `idx_refer_uuid` (`refer_uuid`) USING BTREE,
+          INDEX `idx_ruv` (`refer_uuid`,`refer_version`) USING BTREE,
+          INDEX `idx_st_ru` (`subject_type`,`refer_uuid`) USING BTREE
+        ) ENGINE = InnoDB;
+
+        DROP TABLE IF EXISTS `t_summary_report`;
+        CREATE TABLE `t_summary_report`  (
+          `id` int(11) NOT NULL,
+          `create_time` datetime NOT NULL,
+          `org_uuid` varchar(32) NULL DEFAULT NULL COMMENT '归属机构uuid',
+          `org_name` varchar(80) NULL DEFAULT NULL COMMENT '归属机构名称',
+          `rule_count` int(11) NULL DEFAULT NULL COMMENT '规则数量',
+          `req_count` int(11) NOT NULL DEFAULT 0 COMMENT '调用次数',
+          `batch_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用次数',
+          `batch_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '批量调用成功次数',
+          `online_req_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用次数',
+          `online_req_success_count` int(11) NOT NULL DEFAULT 0 COMMENT '联机调用成功次数',
+          `stat_date` date NOT NULL COMMENT '统计日期',
+          PRIMARY KEY (`id`) USING BTREE,
+          INDEX `uk_org_date`(`org_uuid`, `stat_date`) USING BTREE,
+          INDEX `idx_org_uuid`(`org_uuid`) USING BTREE,
+          INDEX `idx_stat_date`(`stat_date`) USING BTREE
+        ) ENGINE = InnoDB;
+
+        DROP TABLE IF EXISTS `t_testcase`;
+        CREATE TABLE `t_testcase`  (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `rule_uuid` char(32) NOT NULL COMMENT '规则uuid (assets表中类型为 guidedrule:向导式决策集,ruletable:决策表,ruleflow:决策流,ruletree:决策树,scorecard:评分卡的uuid)',
+          `case_uuid` char(32) NOT NULL COMMENT '测试案例uuid  (testcase:测试案例的uuid)',
+          `assets_version` int(11) NOT NULL COMMENT '资源文件版本号',
+          PRIMARY KEY (`id`) USING BTREE,
+          UNIQUE INDEX `uk_case`(`case_uuid`) USING BTREE COMMENT '唯一索引'
+        ) ENGINE = InnoDB ;
+    </insert>
+
+    <update id="updateKnowledgePackageCreatorUuid">
+        UPDATE
+            t_project p, t_knowledge_package k
+        SET k.creator_uuid = p.creator_uuid
+        WHERE k.project_uuid = p.uuid
+    </update>
+
+    <!--更新t_micro project_uuid-->
+    <update id="updateMicroProjectUuid">
+        UPDATE
+            t_micro tm,t_knowledge_package tkp
+        SET tm.project_uuid = tkp.project_uuid
+        WHERE tm.package_uuid = tkp.uuid
+    </update>
+
+    <update id="updateProjectUserProjectUuid">
+        UPDATE t_project_user t1, t_project t2
+        SET t1.project_uuid = t2.uuid
+        WHERE t1.project_id = t2.id
+    </update>
+
+    <update id="updateProjectUserUserUuid">
+        UPDATE t_project_user t1, t_user t2
+        SET t1.user_uuid = t2.uuid
+        WHERE t1.user_id = t2.id
+    </update>
+
+    <update id="updateUserOrgUuid">
+        UPDATE t_user t1, t_org_user t2
+        SET t1.org_uuid = t2.org_uuid
+        WHERE t1.uuid = t2.user_uuid
+    </update>
+
+    <!--更新更新 t_user_permission 表 user_uuid 字段-->
+    <update id="updateUserUuidInUserPermission">
+        UPDATE
+            t_user_permission tum,t_user tu
+        SET tum.user_uuid = tu.uuid
+        WHERE tum.user_id = tu.id
+    </update>
+
+    <select id="selectAssets" resultMap="assetsResultMap">
+        SELECT id,uuid,content,type FROM t_assets
+        WHERE 1=1
+        <if test="assets.projectUuid != null and assets.projectUuid != ''">
+            AND project_uuid = #{assets.projectUuid}
+        </if>
+        <if test="assets.type != null and assets.type != ''">
+            AND type = #{assets.type}
+        </if>
+        <if test="assets.id != null">
+            AND id = #{assets.id}
+        </if>
+        <if test="assets.content != null and assets.content != ''">
+            AND content LIKE CONCAT('%',#{assets.content},'%')
+        </if>
+        ORDER BY id
+        <if test="size != 0">
+            LIMIT #{start}, #{size}
+        </if>
+    </select>
+
+    <update id="updateAssetsById">
+        UPDATE t_assets
+        SET content = #{content}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectAssetsVersion" resultMap="assetsVersionResultMap">
+        SELECT tav.id, tav.content, tav.version_desc, tav.version_no, tav.create_time, ta.type FROM t_assets_version tav left join t_assets ta ON tav.assets_uuid = ta.uuid
+        WHERE 1=1
+        <if test="assets.projectUuid != null and assets.projectUuid != ''">
+            AND ta.project_uuid = #{assets.projectUuid}
+        </if>
+        <if test="assets.type != null and assets.type != ''">
+            AND ta.type = #{assets.type}
+        </if>
+        <if test="assets.uuid != null and assets.uuid != ''">
+            AND assets_uuid = #{assets.uuid}
+        </if>
+        <if test="assets.content != null and assets.content != ''">
+            AND ta.content LIKE CONCAT('%',#{assets.content},'%')
+        </if>
+        ORDER BY id
+        <if test="size != 0">
+            LIMIT #{start}, #{size}
+        </if>
+    </select>
+
+    <update id="updateAssetsVersionById">
+        UPDATE t_assets_version
+        SET content = #{content}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateUserRoleUserUuid">
+        UPDATE t_user_role ur, t_user u
+        SET ur.user_uuid = u.uuid
+        WHERE ur.user_id =  u.id
+    </update>
+    <update id="saveRuleNewVersion">
+        INSERT INTO t_assets_version ( assets_uuid, content, creator_uuid, version_no, create_time ) SELECT
+        ta.uuid,
+        ta.content,
+        ta.creator_uuid,
+        IFNULL( tmp.version_no, 0 ) + 1 version_no,
+        NOW()
+        FROM
+            t_assets ta
+            LEFT JOIN ( SELECT assets_uuid, MAX( version_no ) version_no FROM t_assets_version GROUP BY assets_uuid ) tmp ON ta.uuid = tmp.assets_uuid
+        WHERE
+            ta.content IS NOT NULL
+            AND ta.content != ''
+        <choose>
+            <when test="ruleFlow">
+                AND type = 'ruleflow'
+            </when>
+            <otherwise>
+                AND type IN (
+                'scorecard',
+                'guidedrule',
+                'ruletree',
+                'ruletable')
+            </otherwise>
+        </choose>
+    </update>
+    <update id="updateVersionNo">
+        UPDATE t_assets_version SET version_no = version_no + 1
+        WHERE id > #{start} AND id &lt;= #{end};
+    </update>
+
+    <select id="maxVersionId" resultType="java.lang.Integer">
+        SELECT MAX(id) FROM t_assets_version
+    </select>
+
+    <update id="updateKnowledgePackageAssetsVersions">
+        UPDATE t_knowledge_package_assets t1, (SELECT assets_uuid, MAX(version_no) version_no FROM t_assets_version GROUP BY assets_uuid) t2
+        SET t1.assets_version = t2.version_no , t1.baseline_version = 1 WHERE t1.assets_uuid = t2.assets_uuid;
+        UPDATE t_knowledge_package_assets t1 , t_knowledge_package t2 SET t1.assets_version = 0 , t1.baseline_version=0
+        WHERE t1.package_uuid = t2.uuid AND (t2.name IS NULL OR t2.name = '')
+    </update>
+
+
+
+    <select id="selectReferAssets" resultType="com.beagledata.gaea.workbench.entity.Assets">
+        SELECT ta.id ,ta.uuid ,ta.content, ta.type
+        FROM t_assets ta LEFT JOIN t_project tp ON ta.project_uuid = tp.uuid
+        WHERE  !ta.is_deleted AND  !tp.is_deleted
+        ORDER BY id
+        LIMIT #{start}, #{size}
+    </select>
+
+    <select id="selectVersionReferAssets" resultType="com.beagledata.gaea.workbench.entity.Assets">
+        SELECT ta.id ,ta.uuid ,tav.content, ta.type ,tav.version_no versionNo
+        FROM t_assets_version tav LEFT JOIN t_assets ta ON tav.assets_uuid = ta.uuid
+            LEFT JOIN t_project tp ON ta.project_uuid = tp.uuid
+        WHERE  !ta.is_deleted AND  !tp.is_deleted AND ta.type NOT IN ('fact','constant')
+        ORDER BY id
+        LIMIT #{start}, #{size}
+    </select>
+
+    <!--t_knowledge_package表有name的批量新增基线，状态为待发布状态-->
+    <insert id="insertKnowledgePackageBaseline">
+        INSERT INTO t_knowledge_package_baseline (
+            uuid, create_time, package_uuid, creator_uuid, version_no, state
+        ) SELECT
+            UUID(), NOW(), t1.uuid, t2.creator_uuid, 1, 0
+        FROM
+            t_knowledge_package t1
+        LEFT JOIN t_project t2 ON t1.project_uuid = t2.uuid
+        WHERE
+            !t1.is_deleted
+        AND !t2.is_deleted
+        AND t1. NAME IS NOT NULL
+        AND t1. NAME != ''
+    </insert>
+
+    <update id="updateKnowledgePackageBaseline">
+        UPDATE t_knowledge_package_baseline t1
+        SET t1.uuid = REPLACE(t1.uuid, "-", '');
+
+        UPDATE t_knowledge_package_baseline t1, t_knowledge_package t2
+        SET t1.state = 3
+        WHERE
+            t1.package_uuid = t2.uuid
+        AND (t2.micro_uuid IS NOT NULL
+        OR t2.micro_uuid != '')
+    </update>
+
+    <insert id="insertMicroDeployment">
+        INSERT INTO t_micro_deployment (
+            uuid, create_time, micro_uuid, incoming_quantity, expired_time, type
+        ) SELECT
+            UUID(), NOW(), t2.micro_uuid, 0, null, 'COMMON'
+        FROM
+            t_knowledge_package_baseline t1
+        LEFT JOIN t_knowledge_package t2 ON t1.package_uuid = t2.uuid
+        WHERE !t2.is_deleted AND t1.state = 3
+    </insert>
+
+    <insert id="insertMicroDeploymentModel">
+        INSERT INTO t_micro_deployment_model (
+            package_uuid, percent, is_primary, version_no, micro_uuid, micro_deployment_uuid
+        ) SELECT
+            t1.package_uuid, null, 1, t1.version_no, t3.micro_uuid, t3.uuid
+        FROM
+            t_knowledge_package_baseline t1
+        LEFT JOIN t_knowledge_package t2 ON t1.package_uuid = t2.uuid
+        LEFT JOIN t_micro_deployment t3 on t3.micro_uuid = t2.micro_uuid
+        WHERE !t2.is_deleted AND t1.state = 3
+    </insert>
+
+    <update id="updateKnowledgePackageWithoutMicroUuid">
+        UPDATE t_micro t1, t_knowledge_package t2
+        SET t1.package_uuid = t2.uuid, t2.micro_uuid = t1.uuid
+        WHERE t1.name is not null
+        AND t1.name != '' AND t1.name = t2.name AND t1.project_uuid = t2.project_uuid
+        AND ! t2.is_deleted AND ! t1.is_deleted
+    </update>
+
+    <update id="updateMicroDeleteTag">
+        UPDATE t_micro
+        SET update_time = NOW(), is_deleted = TRUE, delete_version = id
+        WHERE
+            package_uuid IN (
+                SELECT
+                    t1.uuid
+                FROM
+                    t_knowledge_package t1,
+                    t_project t2
+                WHERE
+                    t1.project_uuid = t2.uuid
+                AND t2.is_deleted
+            )
+    </update>
+</mapper>

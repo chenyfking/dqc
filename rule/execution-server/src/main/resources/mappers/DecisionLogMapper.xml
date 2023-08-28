@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beagledata.gaea.executionserver.mapper.DecisionLogMapper">
+    <resultMap id="decisionLogResultMap" type="DecisionLog">
+        <id property="id" column="id"/>
+        <result property="uuid" column="uuid"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="orgUuid" column="org_uuid"/>
+        <result property="orgName" column="org_name"/>
+        <result property="userUuid" column="user_uuid"/>
+        <result property="userName" column="user_name"/>
+        <result property="deployUuid" column="deploy_uuid"/>
+        <result property="microUuid" column="micro_uuid"/>
+        <result property="pkgUuid" column="pkg_uuid"/>
+        <result property="pkgBaseline" column="pkg_baseline"/>
+        <result property="reqType" column="req_type"/>
+        <result property="state" column="state"/>
+        <result property="pass" column="is_pass"/>
+        <result property="effective" column="is_effective"/>
+        <result property="reqText" column="req_text"/>
+        <result property="resText" column="res_text"/>
+        <result property="fullText" column="full_text"/>
+        <result property="decisionTrace" column="decision_trace"/>
+    </resultMap>
+
+    <insert id="insert">
+        <if test="effective == true || effective == 1">
+            INSERT INTO t_decision_log_${logTableMonth}
+            (uuid, create_time, org_uuid, org_name, user_uuid, user_name, deploy_uuid, micro_uuid,
+            req_type, state)
+            VALUES (#{uuid}, #{createTime}, #{orgUuid}, #{orgName}, #{userUuid}, #{userName},
+            #{deployUuid}, #{microUuid}, #{reqType}, #{state});
+            INSERT INTO t_decision_log_req_${logTableMonth}
+            (uuid, req_text)
+            VALUES (#{uuid}, #{reqText});
+        </if>
+        <if test="state > 0">
+            INSERT INTO t_decision_log_res_${logTableMonth}
+            (uuid, res_text, full_text, pkg_uuid, pkg_baseline, is_pass, is_effective, decision_trace)
+            VALUES (#{uuid}, #{resText}, #{fullText}, #{pkgUuid}, #{pkgBaseline}, #{pass}, #{effective},
+            #{decisionTrace});
+        </if>
+    </insert>
+
+    <insert id="insertBatch">
+        <foreach collection="list" close="" index="index" item="item" open="" separator=";">
+            <if test="item.effective == true || item.effective == 1">
+                INSERT INTO t_decision_log_${item.logTableMonth}
+                (uuid, create_time, org_uuid, org_name, user_uuid, user_name, deploy_uuid, micro_uuid,
+                req_type, state)
+                VALUES (#{item.uuid}, #{item.createTime}, #{item.orgUuid}, #{item.orgName},
+                #{item.userUuid}, #{item.userName}, #{item.deployUuid}, #{item.microUuid}, #{item.reqType},
+                #{item.state});
+                INSERT INTO t_decision_log_req_${item.logTableMonth}
+                (uuid, req_text)
+                VALUES (#{item.uuid}, #{item.reqText})
+                <if test="item.state > 0">
+                    ;
+                </if>
+            </if>
+            <if test="item.state > 0">
+                INSERT INTO t_decision_log_res_${item.logTableMonth}
+                (uuid, res_text, full_text, pkg_uuid, pkg_baseline, is_pass, is_effective, decision_trace)
+                VALUES (#{item.uuid}, #{item.resText}, #{item.fullText}, #{item.pkgUuid}, #{item.pkgBaseline},
+                #{item.pass}, #{item.effective}, #{item.decisionTrace});
+            </if>
+        </foreach>
+    </insert>
+
+    <update id="update">
+        UPDATE t_decision_log_${logTableMonth}
+        SET state = #{state};
+        INSERT INTO t_decision_log_res_${logTableMonth}
+            (uuid, res_text, full_text, pkg_uuid, pkg_baseline, is_pass, is_effective, decision_trace)
+        VALUES (#{uuid}, #{resText}, #{fullText}, #{pkgUuid}, #{pkgBaseline}, #{pass}, #{effective},
+            #{decisionTrace});
+    </update>
+
+    <select id="selectUnSyncResult" resultType="String">
+        SELECT res_text
+        FROM t_decision_log_res_${logTableMonth}
+        WHERE uuid = #{uuid} AND is_effective
+        LIMIT 1
+    </select>
+
+    <select id="selectState" resultType="Integer">
+        SELECT state
+        FROM t_decision_log_${logTableMonth}
+        WHERE uuid = #{uuid}
+        LIMIT 1
+    </select>
+
+    <update id="createTable">
+        CREATE TABLE IF NOT EXISTS t_decision_log_${logTableMonth} (
+            `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+            `uuid` varchar(32) NOT NULL COMMENT '业务唯一uuid',
+            `create_time` datetime NOT NULL COMMENT '创建时间',
+            `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+            `org_uuid` char(32) DEFAULT NULL COMMENT '归属机构uuid',
+            `org_name` varchar(40) DEFAULT NULL COMMENT '归属机构名称',
+            `user_uuid` char(32) DEFAULT NULL COMMENT '归属用户uuid',
+            `user_name` varchar(20) DEFAULT NULL COMMENT '归属用户名称',
+            `deploy_uuid` char(32) DEFAULT NULL COMMENT '上线uuid',
+            `micro_uuid` char(32) DEFAULT NULL COMMENT '决策服务uuid',
+            `req_type` tinyint(1) DEFAULT NULL COMMENT '请求类型 0 联机请求 1 批量调用',
+            `state` tinyint(1) DEFAULT NULL COMMENT '状态 0 执行中 1 执行成功 2 执行失败',
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_uuid` (`uuid`) USING BTREE,
+            KEY `idx_req_type` (`req_type`) USING BTREE,
+            KEY `idx_state` (`state`),
+            KEY `idx_org_uuid` (`org_uuid`),
+            KEY `idx_user_uuid` (`user_uuid`),
+            KEY `idx_micro_uuid` (`micro_uuid`),
+            KEY `idx_create_time` (`create_time`)
+        ) ENGINE=InnoDB;
+
+        CREATE TABLE IF NOT EXISTS t_decision_log_req_${logTableMonth} (
+            `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+            `uuid` char(32) NOT NULL COMMENT '业务唯一uuid',
+            `req_text` text DEFAULT NULL COMMENT '请求文本',
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_uuid` (`uuid`) USING BTREE
+        ) ENGINE=InnoDB;
+
+        CREATE TABLE IF NOT EXISTS t_decision_log_res_${logTableMonth} (
+            `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+            `uuid` char(32) NOT NULL COMMENT '业务唯一uuid',
+            `is_pass` tinyint(1) DEFAULT NULL COMMENT '审批状态 空 不是审批类服务 0 未通过 1 通过',
+            `is_effective` tinyint(1) NOT NULL COMMENT '是否响应结果 0 否 1 是',
+            `pkg_uuid` char(32) NOT NULL COMMENT '知识包uuid',
+            `pkg_baseline` int(11) NOT NULL COMMENT '知识包基线版本',
+            `res_text` text COMMENT '响应文本',
+            `full_text` text COMMENT '全部文本',
+            `decision_trace` text COMMENT '决策轨迹',
+            PRIMARY KEY (`id`),
+            KEY `idx_uuid_effective` (`uuid`,`is_effective`),
+            KEY `idx_pkg_uuid` (`pkg_uuid`),
+            KEY `idx_pkg_baseline` (`pkg_baseline`)
+        ) ENGINE=InnoDB;
+    </update>
+</mapper>

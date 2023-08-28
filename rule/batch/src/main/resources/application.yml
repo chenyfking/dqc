@@ -1,0 +1,47 @@
+config:
+  data-home: ${DATA_HOME:D:\gaea\data}
+  workbench:
+    base-url: ${WORKBENCH_BASE_URL:http://localhost:33005/gaea}
+  processing_thread_num: ${PROCESSING_THREAD_NUM:-1} #处理线程数，<=0 自动分配，默认两倍cpu
+  max_entries_claimed: ${MAX_ENTRIES_CLAIMED:100} #最大拉取记录数量
+  claim_time: ${CLAIM_TIME:1} #拉取时间间隔
+  max_failure_retries: ${MAX_FAILURE_RETRIES:3} #每条记录最大重试次数
+  processing_timeout: ${PROCESSING_TIMEOUT:300} #每条记录处理超时时间，单位秒
+
+spring:
+  profiles:
+    active: ${ENV:dev}
+  datasource:
+    druid:
+      type: com.alibaba.druid.pool.DruidDataSource
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://${DATABASE_IP:localhost}:3306/${DATABASE_NAME:gaea}?allowMultiQueries=true&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+      username: ${DATABASE_USERNAME:gaea}
+      password: ${DATABASE_PASSWORD:gaea@skycloud123}
+      connectionProperties: config.decrypt=false
+      initialSize: ${DATABASE_INITIAL_SIZE:10}
+      minIdle: ${DATABASE_MIN_IDLE:10}
+      maxActive: ${DATABASE_MAX_ACTIVE:100}
+      maxWait: ${DATABASE_MAX_WAIT:60000}
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      validationQuery: SELECT 1
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      poolPreparedStatements: false
+      maxPoolPreparedStatementPerConnectionSize: 20
+
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.beagledata.gaea.batch.entity
+
+logging:
+  config: ${LOG_CONFIG:classpath:logback-spring.xml}
+logback:
+  loghome: ${LOG_HOME:logs}
+  maxhistory: ${LOG_MAXHISTORY:60}
+  maxsize: ${LOG_MAXSIZE:10MB}
+  level:
+    root: ${LOG_LEVEL:INFO}

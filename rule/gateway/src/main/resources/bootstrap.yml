@@ -1,0 +1,8 @@
+logging:
+  config: ${LOG_CONFIG:classpath:logback-spring.xml}
+logback:
+  loghome: ${LOG_HOME:logs}
+  maxhistory: ${LOG_MAXHISTORY:60}
+  maxsize: ${LOG_MAXSIZE:10MB}
+  level:
+    root: ${LOG_LEVEL:INFO}

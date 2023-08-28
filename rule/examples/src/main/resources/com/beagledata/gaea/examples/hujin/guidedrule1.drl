@@ -1,0 +1,74 @@
+// 司法名单匹配
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreLaw
+import com.beagledata.gaea.examples.hujin.PreLaw2
+import com.beagledata.gaea.examples.hujin.Reason
+
+dialect "mvel"
+
+rule "一审规则 "
+    when
+        $PreLaw : PreLaw()
+        $PreLaw2 : PreLaw2()
+        $Reason : Reason()
+        PreLaw(
+            idCardHitCourtDiscredit == true // 司法公安税务.借款人身份证命中法院失信名单 等于 true
+            || idCardHitCourtExecute == true // 司法公安税务.借款人身份证命中法院执行名单 等于 true
+            || idCardHitCrimeWanted == true // 司法公安税务.借款人身份证命中犯罪通缉名单 等于 true
+            || cardNameHitEconnoisseur == true // 司法公安税务.借款人身份证_姓名命中羊毛党嫌疑名单 等于 true
+            || cardNameHitYdyd == true // 司法公安税务.借款人身份证_姓名命中以贷养贷嫌疑名单 等于 true
+        )
+    then
+        $PreLaw2.preLaw21 = "拒绝"; // 赋值:司法名单审批结果.司法一审结果 = 拒绝
+        $Reason.describe = "此人命中多家黑名单，存在极大风险"; // 赋值:不通过原因.描述 = 此人命中多家黑名单，存在极大风险
+end
+
+rule "一审规则2"
+    when
+        $PreLaw : PreLaw()
+        $PreLaw2 : PreLaw2()
+        PreLaw(
+            idCardHitCourtDiscredit == false // 司法公安税务.借款人身份证命中法院失信名单 等于 false
+            && idCardHitCourtExecute == false // 司法公安税务.借款人身份证命中法院执行名单 等于 false
+            && idCardHitCrimeWanted == false // 司法公安税务.借款人身份证命中犯罪通缉名单 等于 false
+            && cardNameHitEconnoisseur == false // 司法公安税务.借款人身份证_姓名命中羊毛党嫌疑名单 等于 false
+            && cardNameHitYdyd == false // 司法公安税务.借款人身份证_姓名命中以贷养贷嫌疑名单 等于 false
+        )
+    then
+        $PreLaw2.preLaw21 = "一审通过"; // 赋值:司法名单审批结果.司法一审结果 = 一审通过
+end
+
+rule "二审规则1"
+    when
+        $PreLaw : PreLaw()
+        $PreLaw2 : PreLaw2()
+        PreLaw(
+            idCardHitCourtSettleCase == true // 司法公安税务.借款人身份证命中法院结案名单 等于 true
+            || idCardHitDissTax == true // 司法公安税务.借款人身份证命中欠税名单 等于 true
+            || idCardHitOfficialDissTax == true // 司法公安税务.借款人身份证命中欠税公司法人代表名单 等于 true
+            || cardNameHitCourtDiscreditVague == true // 司法公安税务.借款人身份证_姓名命中法院失信模糊名单 等于 true
+            || cardNameHitCourtExeVague == true // 司法公安税务.借款人身份证_姓名命中法院执行模糊名单 等于 true
+            || cardNameHitCourtSettleCaseVague == true // 司法公安税务.借款人身份证_姓名命中法院结案模糊名单 等于 true
+            || phoneHitOfficialDissMoney == true // 司法公安税务.借款人手机号命中欠款公司法人代表 等于 true
+        )
+    then
+        $PreLaw2.preLaw22 = "人工审核"; // 赋值:司法名单审批结果.司法二审结果 = 人工审核
+end
+
+rule "二审规则2"
+    when
+        $PreLaw : PreLaw()
+        $PreLaw2 : PreLaw2()
+        PreLaw(
+            idCardHitCourtSettleCase == false // 司法公安税务.借款人身份证命中法院结案名单 等于 false
+            && idCardHitDissTax == false // 司法公安税务.借款人身份证命中欠税名单 等于 false
+            && idCardHitOfficialDissTax == false // 司法公安税务.借款人身份证命中欠税公司法人代表名单 等于 false
+            && cardNameHitCourtDiscreditVague == false // 司法公安税务.借款人身份证_姓名命中法院失信模糊名单 等于 false
+            && cardNameHitCourtExeVague == false // 司法公安税务.借款人身份证_姓名命中法院执行模糊名单 等于 false
+            && cardNameHitCourtSettleCaseVague == false // 司法公安税务.借款人身份证_姓名命中法院结案模糊名单 等于 false
+            && phoneHitOfficialDissMoney == false // 司法公安税务.借款人手机号命中欠款公司法人代表 等于 false
+        )
+    then
+        $PreLaw2.preLaw22 = "二审通过"; // 赋值:司法名单审批结果.司法二审结果 = 二审通过
+end

@@ -1,0 +1,74 @@
+// 互金机构-被查询次数
+package com.beagledata.gaea.examples.hujin
+
+import com.beagledata.gaea.examples.hujin.PreMultiDict
+import com.beagledata.gaea.examples.hujin.Mutualgoldtrust
+import com.beagledata.gaea.examples.hujin.Reason
+
+rule "ruletree1_yushai1"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitSelectedTimesInOneyear >= 3 // 互金机构.借款人1年内被查询次数 大于或等于 3
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust2 = "拒绝"; // 赋值:互金内部信审结果.互金二审结果 = 拒绝
+        $Reason.describe = "此借款人近一年内征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近一年内征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree1_yushai2"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitSelectedTimesInOneyear < 3 // 互金机构.借款人1年内被查询次数 小于 3
+            && hitSelectedTimesInOneMonth >= 2 // 互金机构.借款人1月内被查询次数 大于或等于 2
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust2 = "拒绝"; // 赋值:互金内部信审结果.互金二审结果 = 拒绝
+        $Reason.describe = "此借款人近一月内征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近一月内征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree1_yushai3"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        $Reason : Reason()
+        PreMultiDict(
+            hitSelectedTimesInOneyear < 3 // 互金机构.借款人1年内被查询次数 小于 3
+            && hitSelectedTimesInOneMonth < 2 // 互金机构.借款人1月内被查询次数 小于 2
+            && hitSelectedTimesInaweek >= 1 // 互金机构.借款人1周内被查询次数 大于或等于 1
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust2 = "拒绝"; // 赋值:互金内部信审结果.互金二审结果 = 拒绝
+        $Reason.describe = "此借款人近期（约一周）内征信查询比较频繁，征信风险过高"; // 赋值:不通过原因.描述 = 此借款人近期（约一周）内征信查询比较频繁，征信风险过高
+end
+
+rule "ruletree1_yushai4"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        PreMultiDict(
+            hitSelectedTimesInOneyear < 3 // 互金机构.借款人1年内被查询次数 小于 3
+            && hitSelectedTimesInOneMonth < 2 // 互金机构.借款人1月内被查询次数 小于 2
+            && hitSelectedTimesInaweek < 1 // 互金机构.借款人1周内被查询次数 小于 1
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust2 = "人工审核"; // 赋值:互金内部信审结果.互金二审结果 = 人工审核
+end
+
+rule "ruletree1_yushai5"
+    when
+        $PreMultiDict : PreMultiDict()
+        $Mutualgoldtrust : Mutualgoldtrust()
+        PreMultiDict(
+            hitSelectedTimesInOneyear < 3 // 互金机构.借款人1年内被查询次数 小于 3
+            && hitSelectedTimesInOneMonth < 2 // 互金机构.借款人1月内被查询次数 小于 2
+            && hitSelectedTimesInaweek == "" // 互金机构.借款人1周内被查询次数 为空
+        )
+    then
+        $Mutualgoldtrust.mutualGoldTrust2 = "通过"; // 赋值:互金内部信审结果.互金二审结果 = 通过
+end
