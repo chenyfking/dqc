@@ -1,6 +1,0 @@
-org.springframework.boot.SpringApplicationRunListener=\
-  com.beagledata.security.listener.InitListener,\
-  com.beagledata.gaea.workbench.listener.InitRoleListener
-
-#org.springframework.boot.env.EnvironmentPostProcessor=\
-#  com.beagledata.gaea.common.SafelyYmlProcessor

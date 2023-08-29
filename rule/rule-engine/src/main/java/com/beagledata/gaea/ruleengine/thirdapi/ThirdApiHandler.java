@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.beagledata.gaea.ruleengine.exception.RuleException;
 import com.beagledata.gaea.ruleengine.runtime.RuleContext;
 import com.beagledata.gaea.ruleengine.util.PropertyUtils;
-import com.sun.org.apache.regexp.internal.RE;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
